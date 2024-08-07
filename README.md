@@ -1,2 +1,2 @@
 # ViceCAD
-Really basic GUI API made in C++ with openGL
+Really basic GUI framework made in C++ with openGL
