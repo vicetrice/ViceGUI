@@ -1,2 +1,2 @@
 # ViceCAD
-Really basic CAD made in C++
+Really basic GUI API made in C++ with openGL
