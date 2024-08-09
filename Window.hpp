@@ -9,21 +9,32 @@
 
 namespace Vicetrice
 {
+	enum class ResizeTypes
+	{
+		NORESIZE,
+		RXRESIZE,
+		LXRESIZE,
+		UYRESIZE,
+		DYRESIZE
+	};
 
 	class Window
 	{
 	public:
 
-		Window(int WindowWidth, int WindowHeight);
+		Window(int ContextWidth, int ContextHeight);
 		~Window();
 
-		void Resize(int ContextWidth, int ContextHeight, int width, int height);
+		void AdjustProj(int ContextWidth, int ContextHeight);
 
-		void Drag(GLFWwindow* window, int button, int action);
+		void DragON(GLFWwindow* context, int button, int action);
 
 		void Move(double xpos, double ypos);
 
 		void Draw(const Shader& shader, const VertexArray& va, const IndexBuffer& ib);
+
+		void Resize(GLFWwindow* context, double xpos, double ypos);
+
 		inline bool Dragging()
 		{
 			return m_dragging;
@@ -32,30 +43,36 @@ namespace Vicetrice
 		{
 			return m_render;
 		}
-		inline glm::mat4 MVP()
+		inline glm::mat4 ModelMatrix()
 		{
-			return m_mvp;
+			return m_model;
 		}
 
 
 	private:
-		glm::mat4 m_proj;
-		glm::mat4 m_view;
-		glm::mat4 m_model;
-		glm::mat4 m_mvp;
 
+		glm::mat4 m_model;
 
 		bool m_dragging;
 		bool m_render;
 
-		int m_windowWidth;
-		int	m_windowHeight;
+		int m_ContextWidth;
+		int	m_ContextHeight;
 
 		double	m_lastMouseX;
 		double	m_lastMouseY;
 
-		glm::vec3 translation{ 0.0f, 0.0f, 0.0f };
+		bool m_mouseInside;
+		ResizeTypes m_resize;
 
+
+		void NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const;
+
+		bool IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const;
+
+		bool IsinLimit(float epsilon, float point, float limit) const;
+
+		ResizeTypes CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
 
 
 	}; //class Window
