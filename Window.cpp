@@ -12,8 +12,12 @@ namespace Vicetrice {
 		: m_model{ 1.0f },
 		m_dragging{ false }, m_render{ true }, m_ContextWidth{ ContextWidth },
 		m_ContextHeight{ ContextHeight }, m_lastMouseX{ 0.0 }, m_lastMouseY{ 0.0 },
-		m_mouseInside{ false }, m_resize{ ResizeTypes::NORESIZE }
+		m_resize{ ResizeTypes::NORESIZE }, m_moving{ false }
 	{
+		for (size_t i = 0; i < sizeof(m_VertexSpecific) / sizeof(float); i++)
+		{
+			m_VertexSpecific[i] = 0;
+		}
 	}
 
 	Window::~Window() {
@@ -34,10 +38,10 @@ namespace Vicetrice {
 	bool Window::IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const
 	{
 		const float epsilon = 0.01f;
-		return normalizedMouseX >= m_model[3].x - (0.5f * m_model[0][0]) - epsilon &&
-			normalizedMouseX <= m_model[3].x + (0.5f * m_model[0][0]) + epsilon &&
-			normalizedMouseY >= m_model[3].y - (0.5f * m_model[1][1]) - epsilon &&
-			normalizedMouseY <= m_model[3].y + (0.5f * m_model[1][1]) + epsilon;
+		return normalizedMouseX >= m_model[3].x + m_VertexSpecific[0] - (0.5f * m_model[0][0]) - epsilon &&
+			normalizedMouseX <= m_model[3].x + m_VertexSpecific[2] + (0.5f * m_model[0][0]) + epsilon &&
+			normalizedMouseY >= m_model[3].y + m_VertexSpecific[1] - (0.5f * m_model[1][1]) - epsilon &&
+			normalizedMouseY <= m_model[3].y + m_VertexSpecific[3] + (0.5f * m_model[1][1]) + epsilon;
 	}
 
 	void Window::DragON(GLFWwindow* context, int button, int action)
@@ -57,12 +61,15 @@ namespace Vicetrice {
 					m_dragging = true;
 					m_lastMouseX = mouseX;
 					m_lastMouseY = mouseY;
+					CheckResize(context, normalizedMouseX, normalizedMouseY);
 					if (m_resize == ResizeTypes::NORESIZE)
-						m_resize = CheckResize(context, normalizedMouseX, normalizedMouseY);
+						m_moving = true;
+
 				}
 			}
 			else if (action == GLFW_RELEASE) {
 				m_dragging = false;
+				m_moving = false;
 				m_resize = ResizeTypes::NORESIZE;
 			}
 		}
@@ -70,7 +77,7 @@ namespace Vicetrice {
 
 	void Window::Move(double xpos, double ypos)
 	{
-		if (m_dragging && m_resize == ResizeTypes::NORESIZE)
+		if (m_dragging && m_resize == ResizeTypes::NORESIZE && m_moving)
 		{
 			float deltaX = static_cast<float>(xpos - m_lastMouseX);
 			float deltaY = static_cast<float>(ypos - m_lastMouseY);
@@ -88,7 +95,8 @@ namespace Vicetrice {
 		}
 	}
 
-	void Window::Draw(const Shader& shader, const VertexArray& va, const IndexBuffer& ib) {
+	void Window::Draw(const Shader& shader, const VertexArray& va, const IndexBuffer& ib)
+	{
 		shader.Bind();
 		va.Bind();
 		ib.Bind();
@@ -96,36 +104,47 @@ namespace Vicetrice {
 		m_render = false;
 	}
 
-	ResizeTypes Window::CheckResize(GLFWwindow* context, float normalizedMouseX, float  normalizedMouseY)
+	void Window::CheckResize(GLFWwindow* context, float normalizedMouseX, float  normalizedMouseY)
 	{
 		const float epsilon = 0.01f;
 
-
-		if (IsinLimit(epsilon, normalizedMouseX, m_model[3].x - (0.5f * m_model[0][0])))
+		if (IsMouseInsideObject(normalizedMouseX, normalizedMouseY))
 		{
-			glfwSetCursor(context, glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR));
-			return ResizeTypes::LXRESIZE;
+			if (IsinLimit(epsilon, normalizedMouseX, m_model[3].x + m_VertexSpecific[0] - (0.5f * m_model[0][0])))
+			{
+				glfwSetCursor(context, glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR));
+				m_resize = ResizeTypes::LXRESIZE;
+				return;
+
+			}
+			if (IsinLimit(epsilon, normalizedMouseX, m_model[3].x + m_VertexSpecific[2] + (0.5f * m_model[0][0])))
+			{
+				glfwSetCursor(context, glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR));
+				m_resize = ResizeTypes::RXRESIZE;
+				return;
+			}
+			if (IsinLimit(epsilon, normalizedMouseY, m_model[3].y + m_VertexSpecific[1] - (0.5f * m_model[1][1])))
+			{
+				glfwSetCursor(context, glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR));
+				m_resize = ResizeTypes::DYRESIZE;
+				return;
+			}
+			if (IsinLimit(epsilon, normalizedMouseY, m_model[3].y + m_VertexSpecific[3] + (0.5f * m_model[1][1])))
+			{
+				glfwSetCursor(context, glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR));
+				m_resize = ResizeTypes::UYRESIZE;
+				return;
+			}
+
 
 		}
-		if (IsinLimit(epsilon, normalizedMouseX, m_model[3].x + (0.5f * m_model[0][0])))
+
+		if (!m_dragging)
 		{
-			glfwSetCursor(context, glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR));
-			return ResizeTypes::RXRESIZE;
-		}
-		if (IsinLimit(epsilon, normalizedMouseY, m_model[3].y - (0.5f * m_model[1][1])))
-		{
-			glfwSetCursor(context, glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR));
-			return ResizeTypes::DYRESIZE;
-		}
-		if (IsinLimit(epsilon, normalizedMouseY, m_model[3].y + (0.5f * m_model[1][1])))
-		{
-			glfwSetCursor(context, glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR));
-			return ResizeTypes::UYRESIZE;
+			glfwSetCursor(context, NULL);
+			m_resize = ResizeTypes::NORESIZE;
 		}
 
-
-		glfwSetCursor(context, NULL);
-		return ResizeTypes::NORESIZE;
 
 	}
 
@@ -134,10 +153,9 @@ namespace Vicetrice {
 		float normalizedMouseX, normalizedMouseY;
 		NormalizeMouseCoords(xpos, ypos, normalizedMouseX, normalizedMouseY);
 
-
-	
 		// Verifica si se debe redimensionar
-		CheckResize(context, normalizedMouseX, normalizedMouseY);
+		if (!m_moving)
+			CheckResize(context, normalizedMouseX, normalizedMouseY);
 
 		if (m_dragging && m_resize != ResizeTypes::NORESIZE)
 		{
@@ -149,42 +167,32 @@ namespace Vicetrice {
 			float deltaXNorm = (2.0f * deltaX / m_ContextWidth);
 			float deltaYNorm = -(2.0f * deltaY / m_ContextHeight);
 
-			// Actualiza la escala del objeto basado en el desplazamiento del ratón
-			glm::mat4 dummy(m_model);
 
+			// Aplicar la escala en función del tipo de redimensionamiento
 			switch (m_resize)
 			{
 			case Vicetrice::ResizeTypes::RXRESIZE:
-				dummy = glm::translate(dummy, glm::vec3(deltaXNorm / 2.0f, 0.0f, 0.0f));  // Mantener el lado izquierdo
-				dummy = glm::scale(dummy, glm::vec3(deltaXNorm + 1.0f, 1.0f, 1.0f));
+				m_VertexSpecific[2] += deltaXNorm;
 				break;
 			case Vicetrice::ResizeTypes::LXRESIZE:
-				dummy = glm::translate(dummy, glm::vec3(deltaXNorm / 2.0f, 0.0f, 0.0f)); // Mantener el lado derecho
-				dummy = glm::scale(dummy, glm::vec3(-deltaXNorm + 1.0f, 1.0f, 1.0f));
+				m_VertexSpecific[0] += deltaXNorm;
 				break;
 			case Vicetrice::ResizeTypes::UYRESIZE:
-				dummy = glm::translate(dummy, glm::vec3(0.0f, deltaYNorm / 2.0f, 0.0f));  // Mantener el lado inferior
-				dummy = glm::scale(dummy, glm::vec3(1.0f, deltaYNorm + 1.0f, 1.0f));
+				m_VertexSpecific[3] += deltaYNorm;
 				break;
 			case Vicetrice::ResizeTypes::DYRESIZE:
-				dummy = glm::translate(dummy, glm::vec3(0.0f, deltaYNorm / 2.0f, 0.0f)); // Mantener el lado superior
-				dummy = glm::scale(dummy, glm::vec3(1.0f, -deltaYNorm + 1.0f, 1.0f));
+				m_VertexSpecific[1] += deltaYNorm;
 				break;
 			default:
 				break;
-			}
-
-			if (dummy[0][0] > 0.25f && dummy[1][1] > 0.1f)
-			{
-				m_model = dummy;
 			}
 
 			// Actualiza la última posición del ratón
 			m_lastMouseX = xpos;
 			m_lastMouseY = ypos;
 		}
-
 	}
+
 
 
 	bool Window::IsinLimit(float epsilon, float point, float limit) const

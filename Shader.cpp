@@ -65,6 +65,7 @@ namespace Vicetrice
 		GLCall(glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, &matrix[0][0]));
 	}
 
+
 	int Shader::GetUniformLocation(const std::string& name)
 	{
 		if (m_UlocationCache.find(name) != m_UlocationCache.end())

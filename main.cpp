@@ -14,8 +14,8 @@
 using namespace Vicetrice;
 
 // Variables globales
-int InicontextWidth = 1000;
-int InicontextHeight = 500;
+int InicontextWidth = 800;
+int InicontextHeight = 600;
 Window Vwindow(InicontextWidth, InicontextHeight);
 
 
@@ -80,11 +80,12 @@ int main()
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 
 	// Inicialización de OpenGL
-	float positions[] = {
-		-0.5f, -0.5f, // 0
-		 0.5f, -0.5f, // 1
-		 0.5f,  0.5f, // 2
-		-0.5f,  0.5f  // 3
+	float VertexAtt[] = {
+		//Position	 //VertexID
+		-0.5f, -0.5f, 0.0f, // 0
+		 0.5f, -0.5f, 1.0f, // 1
+		 0.5f,  0.5f, 2.0f,	// 2
+		-0.5f,  0.5f ,3.0f	// 3
 	};
 
 	unsigned int indices[] = {
@@ -98,10 +99,11 @@ int main()
 	unsigned int CurrentShID = 0;
 	{
 		VertexArray va(&CurrentVAID);
-		VertexBuffer vb(positions, sizeof(positions), &CurrentVBID);
+		VertexBuffer vb(VertexAtt, sizeof(VertexAtt), &CurrentVBID);
 		VertexBufferLayout layout;
 
 		layout.Push<float>(2);
+		layout.Push<float>(1);
 		va.addBuffer(vb, layout);
 
 		Shader shader("res/shaders/Basic.shader", &CurrentShID);
@@ -118,12 +120,13 @@ int main()
 			GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
 			// Actualizar la matriz MVP
-			shader.SetUniformMat4f("u_MVP", Vwindow.ModelMatrix());
 
 			// Configurar el shader y los buffers
 
 			if (Vwindow.Rendering() || Vwindow.Dragging())
 			{
+				shader.SetUniformMat4f("u_MVP", Vwindow.ModelMatrix());
+				shader.SetUniform4f("u_VertexSpecific", Vwindow.vertexSpecific()[0], Vwindow.vertexSpecific()[1], Vwindow.vertexSpecific()[2], Vwindow.vertexSpecific()[3]);
 				Vwindow.Draw(shader, va, ib);
 				glfwSwapBuffers(window);
 			}

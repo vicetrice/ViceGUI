@@ -48,10 +48,16 @@ namespace Vicetrice
 			return m_model;
 		}
 
+		inline float* vertexSpecific()
+		{
+			return m_VertexSpecific;
+		}
+
 
 	private:
 
 		glm::mat4 m_model;
+		float m_VertexSpecific[4];
 
 		bool m_dragging;
 		bool m_render;
@@ -62,8 +68,8 @@ namespace Vicetrice
 		double	m_lastMouseX;
 		double	m_lastMouseY;
 
-		bool m_mouseInside;
 		ResizeTypes m_resize;
+		bool m_moving;
 
 
 		void NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const;
@@ -72,7 +78,7 @@ namespace Vicetrice
 
 		bool IsinLimit(float epsilon, float point, float limit) const;
 
-		ResizeTypes CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
+		void CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
 
 
 	}; //class Window
