@@ -20,7 +20,7 @@ namespace Vicetrice
 	{
 	public:
 
-		Shader(const std::string& filepath, unsigned int* CurrentID);
+		Shader(const std::string& filepath);
 		~Shader();
 
 		void Bind() const;
@@ -34,7 +34,6 @@ namespace Vicetrice
 	private:
 		unsigned int m_RendererID;
 		std::unordered_map<std::string, int> m_UlocationCache;
-		unsigned int* m_CurrentID;
 
 
 

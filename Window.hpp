@@ -15,7 +15,11 @@ namespace Vicetrice
 		RXRESIZE,
 		LXRESIZE,
 		UYRESIZE,
-		DYRESIZE
+		DYRESIZE,
+		RXUYRESIZE,
+		RXDYRESIZE,
+		LXUYRESIZE,
+		LXDYRESIZE
 	};
 
 	class Window
@@ -31,24 +35,24 @@ namespace Vicetrice
 
 		void Move(double xpos, double ypos);
 
-		void Draw(const Shader& shader, const VertexArray& va, const IndexBuffer& ib);
+		void Draw();
 
 		void Resize(GLFWwindow* context, double xpos, double ypos);
 
-		inline bool Dragging()
+		inline bool Dragging() const
 		{
 			return m_dragging;
 		}
-		inline bool Rendering()
+		inline bool Rendering() const
 		{
 			return m_render;
 		}
-		inline glm::mat4 ModelMatrix()
+		inline glm::mat4 ModelMatrix() const
 		{
 			return m_model;
 		}
 
-		inline float* vertexSpecific()
+		inline const float* vertexSpecific() const
 		{
 			return m_VertexSpecific;
 		}
@@ -76,9 +80,14 @@ namespace Vicetrice
 
 		bool IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const;
 
-		bool IsinLimit(float epsilon, float point, float limit) const;
+		inline bool IsInBetween(float epsilon, float point, float limit) const
+		{
+			return (point >= limit - epsilon && point <= limit + epsilon);
+		}
 
 		void CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
+
+
 
 
 	}; //class Window

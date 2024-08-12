@@ -1,31 +1,40 @@
-ï»¿#include <GL/glew.h>
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "Window.hpp"
 #include "IndexBuffer.hpp"
 #include "Shader.hpp"
 #include "VertexArray.hpp"
 #include <iostream>
+#include <cassert>
 
 namespace Vicetrice
 {
 	static const float epsilon = 0.01f;
 
-	Window::Window(int ContextWidth, int ContextHeight)
+	Window::Window(int ContextWidth, int ContextHeight,
+		float* VertexAtt, unsigned int* indices,
+		std::string shaderRoute)
 		: m_model{ 1.0f },
 		m_dragging{ false }, m_render{ true }, m_ContextWidth{ ContextWidth },
 		m_ContextHeight{ ContextHeight }, m_lastMouseX{ 0.0 }, m_lastMouseY{ 0.0 },
-		m_resize{ ResizeTypes::NORESIZE }, m_moving{ false }
+		m_resize{ ResizeTypes::NORESIZE }, m_moving{ false }, vb{ VertexAtt, sizeof(VertexAtt) }
+		, ib{ indices, sizeof(indices) }, shader{ shaderRoute }
 	{
+
+		layout.Push<float>(2);
+		layout.Push<float>(1);
+		va.addBuffer(vb, layout);
+
+
+
 		for (size_t i = 0; i < sizeof(m_VertexSpecific) / sizeof(float); i++)
 		{
 			m_VertexSpecific[i] = 0;
 		}
-
 	}
 
 	Window::~Window() {
 	}
-
 
 	void Window::AdjustProj(int ContextWidth, int ContextHeight) {
 
@@ -96,38 +105,9 @@ namespace Vicetrice
 		}
 	}
 
-	void Window::Draw()
+	void Window::Draw(const Shader& shader, const VertexArray& va, const IndexBuffer& ib)
 	{
-
-		float VertexAtt[] = {
-			//Position	 //VertexID
-			-0.5f, -0.5f, 0.0f, // 0
-			 0.5f, -0.5f, 1.0f, // 1
-			 0.5f,  0.5f, 2.0f,	// 2
-			-0.5f,  0.5f ,3.0f	// 3
-		};
-
-		unsigned int indices[] = {
-			0, 1, 2,
-			2, 3, 0
-		};
-
-
-		VertexArray va;
-		VertexBuffer vb(VertexAtt, sizeof(VertexAtt));
-		VertexBufferLayout layout;
-
-		layout.Push<float>(2);
-		layout.Push<float>(1);
-		va.addBuffer(vb, layout);
-
-		Shader shader("res/shaders/Window.shader");
-
-		IndexBuffer ib(indices, sizeof(indices));
-
 		shader.Bind();
-		shader.SetUniformMat4f("u_MVP", m_model);
-		shader.SetUniform4f("u_VertexSpecific", m_VertexSpecific[0], m_VertexSpecific[1], m_VertexSpecific[2], m_VertexSpecific[3]);
 		va.Bind();
 		ib.Bind();
 		GLCall(glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr));
@@ -263,7 +243,7 @@ namespace Vicetrice
 				break;
 			}
 
-			// Actualiza la Ãºltima posiciÃ³n del ratÃ³n
+			// Actualiza la última posición del ratón
 			m_lastMouseX = normalizedMouseX;
 			m_lastMouseY = normalizedMouseY;
 		}

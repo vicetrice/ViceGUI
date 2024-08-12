@@ -9,7 +9,7 @@
 
 namespace Vicetrice
 {
-	Shader::Shader(const std::string& filepath, unsigned int* CurrentID) : m_RendererID{ 0 }, m_CurrentID{ CurrentID }
+	Shader::Shader(const std::string& filepath) : m_RendererID{ 0 }
 	{
 		ShaderProgramSource source = ParseShader(filepath);
 
@@ -27,11 +27,9 @@ namespace Vicetrice
 
 	void Shader::Bind() const
 	{
-		if (*m_CurrentID != m_RendererID)
-		{
-			GLCall(glUseProgram(m_RendererID));
-			*m_CurrentID = m_RendererID;
-		}
+
+		GLCall(glUseProgram(m_RendererID));
+
 	}
 
 	void Shader::Unbind() const

@@ -6,7 +6,7 @@
 
 namespace Vicetrice
 {
-	VertexBuffer::VertexBuffer(const void* data, unsigned int size, unsigned int* CurrentID) : m_CurrentID{ CurrentID }
+	VertexBuffer::VertexBuffer(const void* data, unsigned int size)
 	{
 		GLCall(glGenBuffers(1, &m_RendererID));
 
@@ -25,11 +25,9 @@ namespace Vicetrice
 
 	void VertexBuffer::Bind() const
 	{
-		if (*m_CurrentID != m_RendererID)
-		{
+		
 			GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID));
-			*m_CurrentID = m_RendererID;
-		}
+		
 	}
 
 	void VertexBuffer::Unbind() const

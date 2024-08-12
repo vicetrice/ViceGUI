@@ -6,8 +6,8 @@
 namespace Vicetrice
 {
 
-	IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count, unsigned int* CurrentID)
-		: m_Count{ count }, m_CurrentID{ CurrentID } {
+	IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count)
+		: m_Count{ count } {
 
 		assert(sizeof(unsigned int) == sizeof(GLuint));
 
@@ -29,16 +29,13 @@ namespace Vicetrice
 
 	void IndexBuffer::Bind() const
 	{
-		if (*m_CurrentID != m_RendererID)
-		{
-			GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID));
-			*m_CurrentID = m_RendererID;
-		}
+
+		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID));
+
 	}
 
 	void IndexBuffer::Unbind() const
 	{
 		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-
 	}
 }

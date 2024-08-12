@@ -3,17 +3,18 @@
 #include "VertexBufferLayout.hpp"
 #include <GL/glew.h>
 #include "Error.hpp"
-
+#include <iostream>
 
 namespace Vicetrice
 {
-	VertexArray::VertexArray(unsigned int* currentID) : m_CurrentID{ currentID }
+	VertexArray::VertexArray()
 	{
 		GLCall(glGenVertexArrays(1, &m_RendererID));
 	}
 
 	VertexArray::~VertexArray()
 	{
+		
 		GLCall(glDeleteVertexArrays(1, &m_RendererID));
 
 	}
@@ -38,16 +39,11 @@ namespace Vicetrice
 
 	void VertexArray::Bind() const
 	{
-		if (*m_CurrentID != m_RendererID)
-		{
-			GLCall(glBindVertexArray(m_RendererID));
-			*m_CurrentID = m_RendererID;
-		}
+		GLCall(glBindVertexArray(m_RendererID));
 	}
 
 	void VertexArray::Unbind() const
 	{
 		GLCall(glBindVertexArray(0));
-		*m_CurrentID = 0;
 	}
 } //namespace Vicetrice
