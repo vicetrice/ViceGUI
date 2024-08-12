@@ -89,10 +89,7 @@ int main()
 	{
 		GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-		// Actualizar la matriz MVP
-
 		// Configurar el shader y los buffers
-
 		if (Vwindow.Rendering() || Vwindow.Dragging())
 		{
 			Vwindow.Draw();

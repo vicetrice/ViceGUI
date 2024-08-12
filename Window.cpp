@@ -5,6 +5,7 @@
 #include "Shader.hpp"
 #include "VertexArray.hpp"
 #include <iostream>
+#include <string>
 
 namespace Vicetrice
 {
@@ -20,6 +21,14 @@ namespace Vicetrice
 		{
 			m_VertexSpecific[i] = 0;
 		}
+
+		m_vertex = {
+			//Position	 //VertexID
+			-0.5f, -0.5f, 0.0f, // 0-LD
+			 0.5f, -0.5f, 1.0f, // 1-RD
+			 0.5f,  0.5f, 2.0f,	// 2-RU
+			-0.5f,  0.5f ,3.0f	// 3-LU
+		};
 
 	}
 
@@ -42,10 +51,10 @@ namespace Vicetrice
 
 	bool Window::IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const
 	{
-		return (normalizedMouseX >= m_model[3].x + m_VertexSpecific[0] - 0.5f - epsilon &&
-			normalizedMouseX <= m_model[3].x + m_VertexSpecific[2] + 0.5f + epsilon &&
-			normalizedMouseY >= m_model[3].y + m_VertexSpecific[1] - 0.5f - epsilon &&
-			normalizedMouseY <= m_model[3].y + m_VertexSpecific[3] + 0.5f + epsilon);
+		return (normalizedMouseX >= m_model[3].x + m_VertexSpecific[0] + m_vertex[0] - epsilon &&
+			normalizedMouseX <= m_model[3].x + m_VertexSpecific[2] + m_vertex[3] + epsilon &&
+			normalizedMouseY >= m_model[3].y + m_VertexSpecific[1] + m_vertex[1] - epsilon &&
+			normalizedMouseY <= m_model[3].y + m_VertexSpecific[3] + m_vertex[7] + epsilon);
 	}
 
 	void Window::DragON(GLFWwindow* context, int button, int action)
@@ -87,8 +96,6 @@ namespace Vicetrice
 			float deltaXNorm = static_cast<float>(normalizedMouseX - m_lastMouseX);
 			float deltaYNorm = static_cast<float>(normalizedMouseY - m_lastMouseY);
 
-
-
 			m_model = glm::translate(m_model, glm::vec3(deltaXNorm, deltaYNorm, 0.0f));
 
 			m_lastMouseX = normalizedMouseX;
@@ -99,13 +106,7 @@ namespace Vicetrice
 	void Window::Draw()
 	{
 
-		float VertexAtt[] = {
-			//Position	 //VertexID
-			-0.5f, -0.5f, 0.0f, // 0
-			 0.5f, -0.5f, 1.0f, // 1
-			 0.5f,  0.5f, 2.0f,	// 2
-			-0.5f,  0.5f ,3.0f	// 3
-		};
+
 
 		unsigned int indices[] = {
 			0, 1, 2,
@@ -113,8 +114,9 @@ namespace Vicetrice
 		};
 
 
+
 		VertexArray va;
-		VertexBuffer vb(VertexAtt, sizeof(VertexAtt));
+		VertexBuffer vb(m_vertex.data(), sizeof(float) * m_vertex.size());
 		VertexBufferLayout layout;
 
 		layout.Push<float>(2);
@@ -139,10 +141,10 @@ namespace Vicetrice
 
 		if (IsMouseInsideObject(normalizedMouseX, normalizedMouseY) && !m_dragging)
 		{
-			bool IsInRx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_VertexSpecific[2] + 0.5f);
-			bool IsInLx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_VertexSpecific[0] - 0.5f);
-			bool IsInUy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_VertexSpecific[3] + 0.5f);
-			bool IsInDy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_VertexSpecific[1] - 0.5f);
+			bool IsInRx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_VertexSpecific[2] + m_vertex[3]);
+			bool IsInLx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_VertexSpecific[0] + m_vertex[0]);
+			bool IsInUy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_VertexSpecific[3] + m_vertex[7]);
+			bool IsInDy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_VertexSpecific[1] + m_vertex[1]);
 
 
 
@@ -195,8 +197,6 @@ namespace Vicetrice
 				m_resize = ResizeTypes::UYRESIZE;
 				return;
 			}
-
-
 		}
 
 		if (!m_dragging)
@@ -267,6 +267,11 @@ namespace Vicetrice
 			m_lastMouseX = normalizedMouseX;
 			m_lastMouseY = normalizedMouseY;
 		}
+	}
+
+	void Window::addIcon(std::string name)
+	{
+
 	}
 
 } // namespace Vicetrice

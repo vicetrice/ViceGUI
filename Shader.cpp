@@ -13,9 +13,6 @@ namespace Vicetrice
 	{
 		ShaderProgramSource source = ParseShader(filepath);
 
-		std::cout << "VERTEX" << std::endl << source.VertexSource << std::endl;
-		std::cout << "FRAGMENT" << std::endl << source.FragmentSource << std::endl;
-
 		m_RendererID = CreateShader(source.VertexSource, source.FragmentSource);
 	}
 
@@ -118,7 +115,6 @@ namespace Vicetrice
 		// Error handling
 		int result;
 		GLCall(glGetShaderiv(id, GL_COMPILE_STATUS, &result));
-		std::cout << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader compile status: " << result << std::endl;
 		if (result == GL_FALSE)
 		{
 			int length;
@@ -153,7 +149,6 @@ namespace Vicetrice
 		GLint program_linked;
 
 		GLCall(glGetProgramiv(program, GL_LINK_STATUS, &program_linked));
-		std::cout << "Program link status: " << program_linked << std::endl;
 		if (program_linked != GL_TRUE)
 		{
 			GLsizei log_length = 0;

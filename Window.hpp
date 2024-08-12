@@ -6,6 +6,7 @@
 #include "IndexBuffer.hpp"
 #include "Shader.hpp"
 #include "VertexArray.hpp"
+#include <string>
 
 namespace Vicetrice
 {
@@ -38,6 +39,8 @@ namespace Vicetrice
 		void Draw();
 
 		void Resize(GLFWwindow* context, double xpos, double ypos);
+
+		void addIcon(std::string name);
 
 		inline bool Dragging() const
 		{
@@ -75,6 +78,8 @@ namespace Vicetrice
 		ResizeTypes m_resize;
 		bool m_moving;
 
+		std::vector<float>m_vertex;
+
 
 		void NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const;
 
@@ -86,8 +91,6 @@ namespace Vicetrice
 		}
 
 		void CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
-
-
 
 
 	}; //class Window

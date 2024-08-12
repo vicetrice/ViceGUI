@@ -25,6 +25,9 @@ namespace Vicetrice
 		T* m_context;
 		float m_width;
 		float m_height;
+		
+
+
 		std::unordered_map<std::string, std::unique_ptr<Icon>> m_icons;
 	};
 
