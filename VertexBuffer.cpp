@@ -25,9 +25,7 @@ namespace Vicetrice
 
 	void VertexBuffer::Bind() const
 	{
-		
-			GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID));
-		
+		GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID));
 	}
 
 	void VertexBuffer::Unbind() const
@@ -35,4 +33,13 @@ namespace Vicetrice
 		GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
 	}
+
+	void VertexBuffer::Update(const void* data, unsigned int size, unsigned int offset) const
+	{
+		Bind();
+		GLCall(glBufferSubData(GL_ARRAY_BUFFER, offset, size, data));
+	}
+
+
+
 }

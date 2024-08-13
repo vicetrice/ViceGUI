@@ -8,6 +8,10 @@
 #include "VertexArray.hpp"
 #include <string>
 
+#include "Icon.hpp"
+#include <unordered_map>
+#include <memory>
+
 namespace Vicetrice
 {
 	enum class ResizeTypes
@@ -23,11 +27,13 @@ namespace Vicetrice
 		LXDYRESIZE
 	};
 
+
+
 	class Window
 	{
 	public:
 
-		Window(int ContextWidth, int ContextHeight);
+		Window(int ContextWidth, int ContextHeight, std::string shPath);
 		~Window();
 
 		void AdjustProj(int ContextWidth, int ContextHeight);
@@ -40,7 +46,7 @@ namespace Vicetrice
 
 		void Resize(GLFWwindow* context, double xpos, double ypos);
 
-		void addIcon(std::string name);
+		void addIcon(Icon icon);
 
 		inline bool Dragging() const
 		{
@@ -55,16 +61,13 @@ namespace Vicetrice
 			return m_model;
 		}
 
-		inline const float* vertexSpecific() const
+		inline std::vector<float> Vertices() const
 		{
-			return m_VertexSpecific;
+			return m_vertex;
 		}
-
-
 	private:
 
 		glm::mat4 m_model;
-		float m_VertexSpecific[4];
 
 		bool m_dragging;
 		bool m_render;
@@ -79,6 +82,13 @@ namespace Vicetrice
 		bool m_moving;
 
 		std::vector<float>m_vertex;
+		std::vector<unsigned int> m_indices;
+		VertexArray m_va;
+		VertexBuffer m_vb;
+		Shader m_shader;
+		IndexBuffer m_ib;
+
+		//std::unordered_map<std::string, std::unique_ptr<Icon<Window>>> m_icons;
 
 
 		void NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const;
@@ -92,7 +102,9 @@ namespace Vicetrice
 
 		void CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
 
+		float* IniVertex();
 
+		unsigned int* IniIndex();
 	}; //class Window
 
 

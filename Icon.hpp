@@ -1,35 +1,31 @@
+// Icon.hpp
 #pragma once
+
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <cassert>
 
 namespace Vicetrice
 {
-	template <typename T>
+
 	class Icon
 	{
 	public:
-
-		Icon(T* context, float width, float height);
+		Icon();
 
 		void Draw();
-
 		virtual void OnClick(void(*func)());
-
-		void AddIcon(float width, float height);
-
-		virtual void AddContext();
+		void AddIcon();
+		virtual void AddContext(const std::vector<float>& ContextVertices, bool IsWindow);
 
 	protected:
 
-		T* m_context;
-		float m_width;
-		float m_height;
-		
-
-
 		std::unordered_map<std::string, std::unique_ptr<Icon>> m_icons;
+
+	private:
+
 	};
 
 
-}; //namespace Vicetrice
+} // namespace Vicetrice

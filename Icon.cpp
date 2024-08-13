@@ -3,36 +3,38 @@
 
 namespace Vicetrice
 {
+	Icon::Icon()
+	{}
 
-	template<typename T>
-	Icon<T>::Icon(T* context, float width, float height) : m_context{ context }, m_width{ width }, m_height{ height }
-	{
-
-	}
-
-	template<typename T>
-	void Icon<T>::Draw()
-	{
-		assert(m_context != nullptr);
-
-	}
-
-	template<typename T>
-	void Icon<T>::OnClick(void(*func)())
-	{
-		assert(m_context != nullptr);
-	}
-
-	template<typename T>
-	void Icon<T>::AddIcon(float width, float height)
-	{
-
-
-	}
-
-	template<typename T>
-	void Icon<T>::AddContext()
+	void Icon::Draw()
 	{
 	}
 
-};
+	void Icon::OnClick(void(*func)())
+	{
+	}
+
+	void Icon::AddIcon()
+	{
+	}
+
+	void Icon::AddContext(const std::vector<float>& ContextVertices, bool IsWindow)
+	{
+		if (IsWindow)
+		{
+			assert(ContextVertices.size() >= 12);
+
+
+
+
+
+		}
+		else
+		{
+
+
+		}
+	}
+
+
+}; //namespace Vicetrice

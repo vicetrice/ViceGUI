@@ -2,6 +2,9 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <vector>
+
+
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
 #include "VertexBufferLayout.hpp"
@@ -10,34 +13,48 @@
 #include "vendor/glm/glm.hpp"
 #include "vendor/glm/gtc/matrix_transform.hpp"
 #include "Window.hpp"
+#include "Icon.hpp"
 
 using namespace Vicetrice;
 
 // Variables globales
 int InicontextWidth = 800;
 int InicontextHeight = 600;
-Window Vwindow(InicontextWidth, InicontextHeight);
+int Button;
+int Action;
+double Xpos;
+double Ypos;
+
+enum class Events
+{
+	ContextSize,
+	MouseButton,
+	CursorPosition,
+};
+
+std::vector<Events> events;
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
+	events.push_back(Events::ContextSize);
+	InicontextWidth = width;
+	InicontextHeight = height;
 
-	// Ajusta la proyecci�n ortogr�fica seg�n el nuevo tama�o de la ventana
-	Vwindow.AdjustProj(width, height);
-
-	// Ajusta el viewport de OpenGL
-	glViewport(0, 0, width, height);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	Vwindow.DragON(window, button, action);
+	events.push_back(Events::MouseButton);
+	Button = button;
+	Action = action;
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	Vwindow.Resize(window, xpos, ypos);
-	Vwindow.Move(xpos, ypos);
+	events.push_back(Events::CursorPosition);
+	Xpos = xpos;
+	Ypos = ypos;
 
 }
 
@@ -79,28 +96,58 @@ int main()
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 
-
-
-
-
-
-	// Bucle principal
-	do
 	{
-		GLCall(glClear(GL_COLOR_BUFFER_BIT));
+		Window Vwindow(InicontextWidth, InicontextHeight, "res/shaders/Window.shader");
+		
 
-		// Configurar el shader y los buffers
-		if (Vwindow.Rendering() || Vwindow.Dragging())
+		// Bucle principal
+		do
 		{
-			Vwindow.Draw();
-			glfwSwapBuffers(window);
-		}
-		glfwWaitEvents();
+			glfwWaitEvents();
+			if (!events.empty()) {
+				Events evnt = events.back();
+				events.pop_back();
 
 
-	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-		glfwWindowShouldClose(window) == 0);
+				switch (evnt)
+				{
 
+				case Events::CursorPosition:
+					Vwindow.Resize(window, Xpos, Ypos);
+					Vwindow.Move(Xpos, Ypos);
+
+					break;
+				case Events::MouseButton:
+					Vwindow.DragON(window, Button, Action);
+
+					break;
+				case Events::ContextSize:
+
+					Vwindow.AdjustProj(InicontextWidth, InicontextHeight);
+
+					glViewport(0, 0, InicontextWidth, InicontextHeight);
+
+					break;
+
+				default:
+					break;
+				}
+			}
+
+			GLCall(glClear(GL_COLOR_BUFFER_BIT));
+
+			// Configurar el shader y los buffers
+			if (Vwindow.Rendering() || Vwindow.Dragging())
+			{
+				Vwindow.Draw();
+				glfwSwapBuffers(window);
+			}
+
+
+
+		} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+			glfwWindowShouldClose(window) == 0);
+	}
 	glfwTerminate();
 	return 0;
 }
