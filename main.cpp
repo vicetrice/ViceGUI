@@ -98,9 +98,21 @@ int main()
 
 	{
 		Window Vwindow(InicontextWidth, InicontextHeight, "res/shaders/Window.shader");
-		
+		Icon icon;
+		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 1);
+		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 2);
+		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 3);
+		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 4);
+		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 5);
+	
 
 		// Bucle principal
+		// Activa el blending
+		glEnable(GL_BLEND);
+
+		// Configura la función de blending
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
 		do
 		{
 			glfwWaitEvents();

@@ -61,13 +61,19 @@ namespace Vicetrice
 			return m_model;
 		}
 
-		inline std::vector<float> Vertices() const
+		inline std::vector<float>& Vertices() 
 		{
 			return m_vertex;
+		}
+
+		inline std::vector<unsigned int>& Indices()
+		{
+			return m_indices;
 		}
 	private:
 
 		glm::mat4 m_model;
+		glm::mat4 m_proj;
 
 		bool m_dragging;
 		bool m_render;

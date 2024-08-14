@@ -115,11 +115,62 @@ namespace Vicetrice
 
 	void Window::Draw()
 	{
+		bool first = true;
+		VertexArray va;
+		VertexBuffer vb(m_vertex.data(), m_vertex.size() * sizeof(float));
+		IndexBuffer ib(m_indices.data(), m_indices.size() * sizeof(unsigned int));
+		VertexBufferLayout layout;
+
+		/*for (size_t i = 0; i < m_vertex.size(); i++)
+		{
+			if (first)
+			{
+				std::cout << "VERTEX ARRAY\n" << "{";
+				first = false;
+			}
+			else
+			{
+				std::cout << ", ";
+			}
+			if (i % 7 == 0 && i != 0)
+			{
+				std::cout << std::endl;
+			}
+			std::cout << m_vertex[i];
+		}
+		std::cout << "}" << std::endl;
+		first = true;
+		for (size_t i = 0; i < m_indices.size(); i++)
+		{
+			if (first)
+			{
+				std::cout << "INDEX ARRAY\n" << "{";
+				first = false;
+			}
+			else
+			{
+				std::cout << ", ";
+			}
+			if (i % 3 == 0 && i != 0)
+			{
+				std::cout << std::endl;
+			}
+			std::cout << m_indices[i];
+		}
+		std::cout << "}" << std::endl;*/
+
+		layout.Push<float>(2);
+		layout.Push<float>(4);
+		layout.Push<float>(1);
+
+		va.addBuffer(vb, layout);
+
 		m_shader.Bind();
-		m_shader.SetUniformMat4f("u_MVP", m_model);
-		m_va.Bind();
-		m_ib.Bind();
-		GLCall(glDrawElements(GL_TRIANGLES, m_ib.GetCount(), GL_UNSIGNED_INT, nullptr));
+		m_shader.SetUniformMat4f("u_M", m_model);
+
+		va.Bind();
+		ib.Bind();
+		GLCall(glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr));
 		m_render = false;
 	}
 
@@ -250,7 +301,7 @@ namespace Vicetrice
 				break;
 			}
 
-			m_vb.Update(m_vertex.data(), static_cast<unsigned int>(m_vertex.size() * sizeof(float)));
+			//m_vb.Update(m_vertex.data(), static_cast<unsigned int>(m_vertex.size() * sizeof(float)));
 			m_lastMouseX = normalizedMouseX;
 			m_lastMouseY = normalizedMouseY;
 		}
@@ -258,13 +309,13 @@ namespace Vicetrice
 
 	float* Window::IniVertex()
 	{
-		m_vertex.reserve(12);
+		m_vertex.reserve(28);
 		m_vertex = {
-			//Position	 //VertexID
-			-0.5f, -0.5f, 0.0f, // 0-LD
-			 0.5f, -0.5f, 1.0f, // 1-RD
-			 0.5f,  0.5f, 2.0f,	// 2-RU
-			-0.5f,  0.5f ,3.0f	// 3-LU
+			//Position		//Color					//VertexID
+			-0.5f, -0.5f,	0.8f,0.2f,0.9f,0.0f,	0.0f,	// 0-LD
+			 0.5f, -0.5f,	0.8f,0.2f,0.9f,0.0f,	1.0f,	// 1-RD
+			 0.5f,  0.5f,	0.8f,0.2f,0.9f,0.0f,	2.0f,	// 2-RU
+			-0.5f,  0.5f,	0.8f,0.2f,0.9f,0.0f,	3.0f	// 3-LU
 		};
 
 		return m_vertex.data();

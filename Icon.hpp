@@ -17,7 +17,7 @@ namespace Vicetrice
 		void Draw();
 		virtual void OnClick(void(*func)());
 		void AddIcon();
-		virtual void AddContext(const std::vector<float>& ContextVertices, bool IsWindow);
+		virtual void AddToContext(std::vector<float>& ContextVertices, std::vector<unsigned int>& Indices, bool IsWindow, unsigned int IconNumber) ;
 
 	protected:
 
