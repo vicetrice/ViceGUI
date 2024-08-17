@@ -6,7 +6,7 @@
 namespace Vicetrice
 {
 
-	IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count)
+	IndexBuffer::IndexBuffer(const void* data, unsigned int count)
 		: m_Count{ count } {
 
 		assert(sizeof(unsigned int) == sizeof(GLuint));
@@ -17,7 +17,7 @@ namespace Vicetrice
 		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID));
 
 
-		GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(unsigned int), data, GL_DYNAMIC_DRAW));
+		GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_STATIC_DRAW));
 
 	}
 
@@ -25,6 +25,13 @@ namespace Vicetrice
 	IndexBuffer::~IndexBuffer()
 	{
 		GLCall(glDeleteBuffers(1, &m_RendererID));
+	}
+
+	void IndexBuffer::Update(const void* data, unsigned int count, unsigned int offset)
+	{
+
+		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID));
+		GLCall(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, count , data));
 	}
 
 	void IndexBuffer::Bind() const

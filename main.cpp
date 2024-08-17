@@ -98,20 +98,18 @@ int main()
 
 	{
 		Window Vwindow(InicontextWidth, InicontextHeight, "res/shaders/Window.shader");
-		Icon icon;
+		/*Icon icon;
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 1);
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 2);
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 3);
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 4);
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 5);
-	
+		*/
 
-		// Bucle principal
-		// Activa el blending
+
 		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		// Configura la función de blending
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 		do
 		{
@@ -131,6 +129,8 @@ int main()
 					break;
 				case Events::MouseButton:
 					Vwindow.DragON(window, Button, Action);
+					if (Action == GLFW_PRESS)
+						Vwindow.addIcon();
 
 					break;
 				case Events::ContextSize:
@@ -146,14 +146,19 @@ int main()
 				}
 			}
 
-			GLCall(glClear(GL_COLOR_BUFFER_BIT));
+			if (glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS)
+				Vwindow.RemoveIcon();
+			
 
 			// Configurar el shader y los buffers
 			if (Vwindow.Rendering() || Vwindow.Dragging())
 			{
+				GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
 				Vwindow.Draw();
 				glfwSwapBuffers(window);
 			}
+
 
 
 

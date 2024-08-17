@@ -21,7 +21,7 @@ namespace Vicetrice
 
 	protected:
 
-		std::unordered_map<std::string, std::unique_ptr<Icon>> m_icons;
+		//std::unordered_map<std::string, std::unique_ptr<Icon>> m_icons;
 
 	private:
 

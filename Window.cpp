@@ -13,10 +13,24 @@
 #include <memory>
 
 
+
+
 namespace Vicetrice
 {
 	static const float epsilon = 0.01f;
+	static const unsigned int VerticesPerIcon = 12;
+	static const unsigned int IndicesPerIcon = 6;
 
+
+	//---------------------------------------- PUBLIC
+
+	/**
+	* @brief Constructor for the Window class.
+	*
+	* @param ContextWidth Width of the context (window).
+	* @param ContextHeight Height of the context (window).
+	* @param shPath Path to the shader files.
+	*/
 	Window::Window(int ContextWidth, int ContextHeight, std::string shPath)
 		: m_model{ 1.0f },
 		m_dragging{ false },
@@ -27,25 +41,44 @@ namespace Vicetrice
 		m_lastMouseY{ 0.0 },
 		m_resize{ ResizeTypes::NORESIZE },
 		m_moving{ false },
+		IndexToFirstIconToRender{ 0 },
+		m_MaxIconsToRender{ 40 },
 		m_va{},
 		m_vb{ IniVertex(), static_cast <unsigned int> (sizeof(float) * m_vertex.size()) },
 		m_shader{ shPath },
-		m_ib{ IniIndex(),static_cast<unsigned int> (sizeof(unsigned int) * m_indices.size()) }
+		m_ib{ IniIndex(),static_cast<unsigned int> (sizeof(unsigned int) * m_indices.size()) },
+		m_vaI{},
+		m_vbI{ nullptr,VerticesPerIcon * m_MaxIconsToRender * sizeof(float) },
+		m_shaderI{ "res/shaders/Basic.shader" },
+		m_ibI{ nullptr,IndicesPerIcon * m_MaxIconsToRender * sizeof(unsigned int) }
 	{
 
 		VertexBufferLayout layout;
 
 		layout.Push<float>(2);
+		layout.Push<float>(4);
 		layout.Push<float>(1);
 
 		m_va.addBuffer(m_vb, layout);
 
+		m_vaI.addBuffer(m_vbI, layout);
+
+		updateLimits();
 	}
 
+
+	/**
+	* @brief Destructor for the Window class.
+	*/
 	Window::~Window() {
 	}
 
-
+	/**
+		 * @brief Adjusts the projection matrix based on the new context dimensions.
+		 *
+		 * @param ContextWidth New width of the context.
+		 * @param ContextHeight New height of the context.
+		 */
 	void Window::AdjustProj(int ContextWidth, int ContextHeight) {
 
 		m_ContextWidth = ContextWidth;
@@ -53,20 +86,13 @@ namespace Vicetrice
 		m_render = true;
 	}
 
-	void Window::NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const
-	{
-		normalizedX = (2.0f * (static_cast<float>(mouseX) / m_ContextWidth)) - 1.0f;
-		normalizedY = 1.0f - (2.0f * (static_cast<float>(mouseY) / m_ContextHeight));
-	}
-
-	bool Window::IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const
-	{
-		return (normalizedMouseX >= m_model[3].x + m_vertex[0] - epsilon &&
-			normalizedMouseX <= m_model[3].x + m_vertex[3] + epsilon &&
-			normalizedMouseY >= m_model[3].y + m_vertex[1] - epsilon &&
-			normalizedMouseY <= m_model[3].y + m_vertex[7] + epsilon);
-	}
-
+	/**
+	  * @brief Enables or disables dragging of the window based on mouse events.
+	  *
+	  * @param context Pointer to the GLFW window context.
+	  * @param button Mouse button involved in the action.
+	  * @param action Action taken (e.g., press, release).
+	  */
 	void Window::DragON(GLFWwindow* context, int button, int action)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
@@ -97,6 +123,13 @@ namespace Vicetrice
 		}
 	}
 
+
+	/**
+		* @brief Moves the window based on the mouse position.
+		*
+		* @param xpos X position of the mouse.
+		* @param ypos Y position of the mouse.
+		*/
 	void Window::Move(double xpos, double ypos)
 	{
 		if (m_dragging && m_resize == ResizeTypes::NORESIZE && m_moving)
@@ -110,18 +143,20 @@ namespace Vicetrice
 
 			m_lastMouseX = normalizedMouseX;
 			m_lastMouseY = normalizedMouseY;
+
+			updateLimits();
 		}
 	}
 
+
+	/**
+		 * @brief Draws the window and its icons on the screen.
+		 */
 	void Window::Draw()
 	{
-		bool first = true;
-		VertexArray va;
-		VertexBuffer vb(m_vertex.data(), m_vertex.size() * sizeof(float));
-		IndexBuffer ib(m_indices.data(), m_indices.size() * sizeof(unsigned int));
-		VertexBufferLayout layout;
+		/*bool first = true;
 
-		/*for (size_t i = 0; i < m_vertex.size(); i++)
+		for (size_t i = 0; i < m_vertex.size(); i++)
 		{
 			if (first)
 			{
@@ -159,29 +194,300 @@ namespace Vicetrice
 		}
 		std::cout << "}" << std::endl;*/
 
-		layout.Push<float>(2);
-		layout.Push<float>(4);
-		layout.Push<float>(1);
 
-		va.addBuffer(vb, layout);
 
 		m_shader.Bind();
 		m_shader.SetUniformMat4f("u_M", m_model);
 
-		va.Bind();
-		ib.Bind();
-		GLCall(glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr));
+
+		m_va.Bind();
+		m_ib.Bind();
+		GLCall(glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(m_indices.size()), GL_UNSIGNED_INT, nullptr));
+		DrawIcon();
 		m_render = false;
 	}
 
+	/**
+	  * @brief Resizes the window based on mouse position.
+	  *
+	  * @param context Pointer to the GLFW window context.
+	  * @param xpos X position of the mouse.
+	  * @param ypos Y position of the mouse.
+	  */
+	void Window::Resize(GLFWwindow* context, double xpos, double ypos)
+	{
+		float normalizedMouseX = 0.0f;
+		float normalizedMouseY = 0.0f;
+
+		if (!m_moving)
+		{
+			NormalizeMouseCoords(xpos, ypos, normalizedMouseX, normalizedMouseY);
+			CheckResize(context, normalizedMouseX, normalizedMouseY);
+		}
+
+		if (m_dragging && m_resize != ResizeTypes::NORESIZE && !m_moving)
+		{
+
+			float deltaXNorm = static_cast<float>(normalizedMouseX - m_lastMouseX);
+			float deltaYNorm = static_cast<float>(normalizedMouseY - m_lastMouseY);
+
+
+
+			switch (m_resize)
+			{
+			case Vicetrice::ResizeTypes::RXRESIZE:
+				m_vertex[7] = m_vertex[14] += deltaXNorm;
+				break;
+			case Vicetrice::ResizeTypes::LXRESIZE:
+				m_vertex[21] = m_vertex[0] += deltaXNorm;
+				break;
+			case Vicetrice::ResizeTypes::UYRESIZE:
+				m_vertex[15] = m_vertex[22] += deltaYNorm;
+				break;
+			case Vicetrice::ResizeTypes::DYRESIZE:
+				m_vertex[1] = m_vertex[8] += deltaYNorm;
+				break;
+			case Vicetrice::ResizeTypes::RXDYRESIZE:
+				m_vertex[7] = m_vertex[14] += deltaXNorm;
+				m_vertex[1] = m_vertex[8] += deltaYNorm;
+
+				break;
+			case Vicetrice::ResizeTypes::RXUYRESIZE:
+				m_vertex[7] = m_vertex[14] += deltaXNorm;
+				m_vertex[15] = m_vertex[22] += deltaYNorm;
+
+				break;
+			case Vicetrice::ResizeTypes::LXDYRESIZE:
+				m_vertex[21] = m_vertex[0] += deltaXNorm;
+				m_vertex[1] = m_vertex[8] += deltaYNorm;
+
+				break;
+			case Vicetrice::ResizeTypes::LXUYRESIZE:
+				m_vertex[21] = m_vertex[0] += deltaXNorm;
+
+				m_vertex[15] = m_vertex[22] += deltaYNorm;
+				break;
+
+			default:
+				break;
+			}
+			updateLimits();
+
+			m_vb.Update(m_vertex.data(), static_cast<unsigned int>(m_vertex.size() * sizeof(float)));
+			RenderIcon();
+			m_lastMouseX = normalizedMouseX;
+			m_lastMouseY = normalizedMouseY;
+		}
+	}
+
+	/**
+		 * @brief Adds an icon to the window.
+		 */
+	void Window::addIcon()
+	{
+		m_icons.emplace_back(Icon());
+		RenderIcon();
+		m_render = true;
+	}
+
+	//---------------------------------------- PRIVATE
+
+	/**
+		* @brief Initializes the vertex data for the window.
+		*
+		* @return Pointer to the vertex data array.
+		*/
+	float* Window::IniVertex()
+	{
+
+		m_vertex = {
+			//Position		//Color					//VertexID
+			-0.5f, -0.5f,	0.8f,0.2f,0.9f,1.0f,	0.0f,	// 0-LD
+			 0.5f, -0.5f,	0.8f,0.2f,0.9f,1.0f,	1.0f,	// 1-RD
+			 0.5f,  0.5f,	0.8f,0.2f,0.9f,1.0f,	2.0f,	// 2-RU
+			-0.5f,  0.5f,	0.8f,0.2f,0.9f,1.0f,	3.0f	// 3-LU
+		};
+
+		return m_vertex.data();
+	}
+
+
+	/**
+	   * @brief Initializes the index data for the window.
+	   *
+	   * @return Pointer to the index data array.
+	   */
+	unsigned int* Window::IniIndex()
+	{
+
+		m_indices =
+		{
+			2, 0, 1,
+			0, 3, 2
+		};
+
+		return m_indices.data();
+
+	}
+
+	/**
+		* @brief Renders an icon on the window.
+		*/
+	void Window::RenderIcon()
+	{
+		if (m_icons.size() == 0)
+		{
+			return;
+		}
+
+		m_MaxIconsToRender = static_cast<unsigned int>(((m_WindowLimits[2] - m_WindowLimits[3]) / 0.1) + 1);
+
+
+		std::vector<float> IconsToRender;
+		std::vector<unsigned int>IconsIndicesToRender;
+
+		unsigned int IconCount = 1;
+
+
+		IconsToRender = {
+
+			//Position								//Color					//VertexID
+			m_vertex[21],	m_vertex[22] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	0.0f,
+			m_vertex[14],	m_vertex[15] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	1.0f
+		};
+
+		size_t limit = m_icons.size() < m_MaxIconsToRender ? m_icons.size() : m_MaxIconsToRender;
+
+		for (size_t i = IndexToFirstIconToRender; i < limit; i++)
+		{
+			m_icons[i].AddToContext(IconsToRender, IconsIndicesToRender, 1, IconCount);
+			++IconCount;
+		}
+
+		m_vbI.Update(IconsToRender.data(), static_cast<unsigned int>(IconsToRender.size() * sizeof(float)));
+		m_ibI.Update(IconsIndicesToRender.data(), static_cast<unsigned int>(IconsIndicesToRender.size() * sizeof(unsigned int)));
+
+
+
+		/*bool first = true;
+
+		for (size_t i = 0; i < IconsToRender.size(); i++)
+		{
+			if (first)
+			{
+				std::cout << "VERTEX ARRAY\n" << "{";
+				first = false;
+			}
+			else
+			{
+				std::cout << ", ";
+			}
+			if (i % 7 == 0 && i != 0)
+			{
+				std::cout << std::endl;
+			}
+			std::cout << IconsToRender[i];
+		}
+		std::cout << "}" << std::endl;
+		first = true;
+		for (size_t i = 0; i < IconsIndicesToRender.size(); i++)
+		{
+			if (first)
+			{
+				std::cout << "INDEX ARRAY\n" << "{";
+				first = false;
+			}
+			else
+			{
+				std::cout << ", ";
+			}
+			if (i % 3 == 0 && i != 0)
+			{
+				std::cout << std::endl;
+			}
+			std::cout << IconsIndicesToRender[i];
+		}
+		std::cout << "}" << std::endl;*/
+
+
+	}
+
+
+	/**
+		 * @brief Removes an icon from the window.
+		 */
+	void Window::RemoveIcon()
+	{
+		if (!m_icons.empty())
+			m_icons.pop_back();
+		RenderIcon();
+		m_render = true;
+	}
+
+
+	/**
+	 * @brief Draws an icon on the window.
+	 */
+	void Window::DrawIcon()
+	{
+
+		m_shaderI.Bind();
+		m_shaderI.SetUniformMat4f("u_M", m_model);
+
+		int viewportWidth = m_ContextWidth;
+		int viewportHeight = m_ContextHeight;
+
+		float xMaxNDC = m_WindowLimits[0];
+		float xMinNDC = m_WindowLimits[1];
+		float yMaxNDC = m_WindowLimits[2];
+		float yMinNDC = m_WindowLimits[3];
+
+		float xMaxScreen = ((xMaxNDC + 1.0f) / 2.0f) * viewportWidth;
+		float xMinScreen = ((xMinNDC + 1.0f) / 2.0f) * viewportWidth;
+		float yMaxScreen = ((yMaxNDC + 1.0f) / 2.0f) * viewportHeight;
+		float yMinScreen = ((yMinNDC + 1.0f) / 2.0f) * viewportHeight;
+
+		m_shaderI.SetUniform4f("u_WinLimit", xMaxScreen, xMinScreen, yMaxScreen, yMinScreen);
+
+		m_vaI.Bind();
+		m_vbI.Bind();
+		m_ibI.Bind();
+
+		unsigned int size = static_cast<unsigned int>(m_icons.size());
+
+		unsigned int limit = size < m_MaxIconsToRender ? size : m_MaxIconsToRender;
+
+		GLCall(glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(limit * IndicesPerIcon), GL_UNSIGNED_INT, nullptr));
+
+	}
+
+
+	/**
+		 * @brief Updates the limits of the window based on its current position and size.
+		 */
+	void Window::updateLimits()
+	{
+		m_WindowLimits[0] = m_model[3].x + m_vertex[7];
+		m_WindowLimits[1] = m_model[3].x + m_vertex[0];
+		m_WindowLimits[2] = m_model[3].y + m_vertex[15];
+		m_WindowLimits[3] = m_model[3].y + m_vertex[1];
+	}
+
+	/**
+   * @brief Checks and adjusts the window resizing based on mouse position.
+   *
+   * @param context Pointer to the GLFW window context.
+   * @param normalizedMouseX Normalized X position of the mouse.
+   * @param normalizedMouseY Normalized Y position of the mouse.
+   */
 	void Window::CheckResize(GLFWwindow* context, float normalizedMouseX, float  normalizedMouseY)
 	{
 
 		if (IsMouseInsideObject(normalizedMouseX, normalizedMouseY) && !m_dragging)
 		{
-			bool IsInRx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_vertex[3]);
+			bool IsInRx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_vertex[7]);
 			bool IsInLx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_vertex[0]);
-			bool IsInUy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_vertex[7]);
+			bool IsInUy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_vertex[15]);
 			bool IsInDy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_vertex[1]);
 
 
@@ -246,92 +552,35 @@ namespace Vicetrice
 
 	}
 
-	void Window::Resize(GLFWwindow* context, double xpos, double ypos)
+
+	/**
+		* @brief Normalizes mouse coordinates from screen space to OpenGL space.
+		*
+		* @param mouseX X position of the mouse in screen space.
+		* @param mouseY Y position of the mouse in screen space.
+		* @param normalizedX Reference to store the normalized X position.
+		* @param normalizedY Reference to store the normalized Y position.
+		*/
+	void Window::NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const
 	{
-		float normalizedMouseX = 0.0f;
-		float normalizedMouseY = 0.0f;
-
-		if (!m_moving)
-		{
-			NormalizeMouseCoords(xpos, ypos, normalizedMouseX, normalizedMouseY);
-			CheckResize(context, normalizedMouseX, normalizedMouseY);
-		}
-
-		if (m_dragging && m_resize != ResizeTypes::NORESIZE && !m_moving)
-		{
-
-			float deltaXNorm = static_cast<float>(normalizedMouseX - m_lastMouseX);
-			float deltaYNorm = static_cast<float>(normalizedMouseY - m_lastMouseY);
-
-
-
-			switch (m_resize)
-			{
-			case Vicetrice::ResizeTypes::RXRESIZE:
-				m_vertex[6] = m_vertex[3] += deltaXNorm;
-				break;
-			case Vicetrice::ResizeTypes::LXRESIZE:
-				m_vertex[9] = m_vertex[0] += deltaXNorm;
-				break;
-			case Vicetrice::ResizeTypes::UYRESIZE:
-				m_vertex[10] = m_vertex[7] += deltaYNorm;
-				break;
-			case Vicetrice::ResizeTypes::DYRESIZE:
-				m_vertex[4] = m_vertex[1] += deltaYNorm;
-				break;
-			case Vicetrice::ResizeTypes::RXDYRESIZE:
-				m_vertex[6] = m_vertex[3] += deltaXNorm;
-				m_vertex[4] = m_vertex[1] += deltaYNorm;
-				break;
-			case Vicetrice::ResizeTypes::RXUYRESIZE:
-				m_vertex[6] = m_vertex[3] += deltaXNorm;
-				m_vertex[10] = m_vertex[7] += deltaYNorm;
-				break;
-			case Vicetrice::ResizeTypes::LXDYRESIZE:
-				m_vertex[9] = m_vertex[0] += deltaXNorm;
-				m_vertex[4] = m_vertex[1] += deltaYNorm;
-
-				break;
-			case Vicetrice::ResizeTypes::LXUYRESIZE:
-				m_vertex[9] = m_vertex[0] += deltaXNorm;
-				m_vertex[10] = m_vertex[7] += deltaYNorm;
-				break;
-
-			default:
-				break;
-			}
-
-			//m_vb.Update(m_vertex.data(), static_cast<unsigned int>(m_vertex.size() * sizeof(float)));
-			m_lastMouseX = normalizedMouseX;
-			m_lastMouseY = normalizedMouseY;
-		}
+		normalizedX = (2.0f * (static_cast<float>(mouseX) / m_ContextWidth)) - 1.0f;
+		normalizedY = 1.0f - (2.0f * (static_cast<float>(mouseY) / m_ContextHeight));
 	}
 
-	float* Window::IniVertex()
+
+	/**
+		* @brief Checks if the mouse is inside the window's object.
+		*
+		* @param normalizedMouseX Normalized X position of the mouse.
+		* @param normalizedMouseY Normalized Y position of the mouse.
+		* @return True if the mouse is inside the object, otherwise false.
+		*/
+	bool Window::IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const
 	{
-		m_vertex.reserve(28);
-		m_vertex = {
-			//Position		//Color					//VertexID
-			-0.5f, -0.5f,	0.8f,0.2f,0.9f,0.0f,	0.0f,	// 0-LD
-			 0.5f, -0.5f,	0.8f,0.2f,0.9f,0.0f,	1.0f,	// 1-RD
-			 0.5f,  0.5f,	0.8f,0.2f,0.9f,0.0f,	2.0f,	// 2-RU
-			-0.5f,  0.5f,	0.8f,0.2f,0.9f,0.0f,	3.0f	// 3-LU
-		};
-
-		return m_vertex.data();
-	}
-
-	unsigned int* Window::IniIndex()
-	{
-		m_indices.reserve(6);
-		m_indices =
-		{
-			2, 0, 1,
-			0, 3, 2
-		};
-
-		return m_indices.data();
-
+		return (normalizedMouseX >= m_model[3].x + m_vertex[0] - epsilon &&
+			normalizedMouseX <= m_model[3].x + m_vertex[7] + epsilon &&
+			normalizedMouseY >= m_model[3].y + m_vertex[1] - epsilon &&
+			normalizedMouseY <= m_model[3].y + m_vertex[15] + epsilon);
 	}
 
 } // namespace Vicetrice
