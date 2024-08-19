@@ -97,7 +97,7 @@ int main()
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 
 	{
-		Window Vwindow(InicontextWidth, InicontextHeight, "res/shaders/Window.shader");
+		Window Vwindow(InicontextWidth, InicontextHeight);
 		/*Icon icon;
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 1);
 		icon.AddToContext(Vwindow.Vertices(), Vwindow.Indices(), true, 2);

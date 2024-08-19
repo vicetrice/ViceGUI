@@ -31,7 +31,7 @@ namespace Vicetrice
 	* @param ContextHeight Height of the context (window).
 	* @param shPath Path to the shader files.
 	*/
-	Window::Window(int ContextWidth, int ContextHeight, std::string shPath)
+	Window::Window(int ContextWidth, int ContextHeight)
 		: m_model{ 1.0f },
 		m_dragging{ false },
 		m_render{ true },
@@ -41,16 +41,19 @@ namespace Vicetrice
 		m_lastMouseY{ 0.0 },
 		m_resize{ ResizeTypes::NORESIZE },
 		m_moving{ false },
-		IndexToFirstIconToRender{ 0 },
+		m_IndexToFirstIconToRender{ 0 },
 		m_MaxIconsToRender{ 40 },
 		m_va{},
 		m_vb{ IniVertex(), static_cast <unsigned int> (sizeof(float) * m_vertex.size()) },
-		m_shader{ shPath },
+		m_shader{ "res/shaders/Window.shader" },
 		m_ib{ IniIndex(),static_cast<unsigned int> (sizeof(unsigned int) * m_indices.size()) },
 		m_vaI{},
 		m_vbI{ nullptr,VerticesPerIcon * m_MaxIconsToRender * sizeof(float) },
-		m_shaderI{ "res/shaders/Basic.shader" },
-		m_ibI{ nullptr,IndicesPerIcon * m_MaxIconsToRender * sizeof(unsigned int) }
+		m_shaderI{ "res/shaders/Icon.shader" },
+		m_ibI{ nullptr,IndicesPerIcon * m_MaxIconsToRender * sizeof(unsigned int) },
+		m_SliderEnable{ false },
+		m_SliderModel{ 1.0f }, //TODO: ADD IT TO CLASS SLIDERICON,
+		m_sliding{ false }
 	{
 
 		VertexBufferLayout layout;
@@ -64,6 +67,7 @@ namespace Vicetrice
 		m_vaI.addBuffer(m_vbI, layout);
 
 		updateLimits();
+
 	}
 
 
@@ -110,7 +114,9 @@ namespace Vicetrice
 					m_lastMouseX = normalizedMouseX;
 					m_lastMouseY = normalizedMouseY;
 					CheckResize(context, normalizedMouseX, normalizedMouseY);
-					if (m_resize == ResizeTypes::NORESIZE)
+					if (CheckSlide(normalizedMouseX, normalizedMouseY))
+						m_sliding = true;
+					else if (m_resize == ResizeTypes::NORESIZE)
 						m_moving = true;
 
 				}
@@ -118,6 +124,7 @@ namespace Vicetrice
 			else if (action == GLFW_RELEASE) {
 				m_dragging = false;
 				m_moving = false;
+				m_sliding = false;
 				CheckResize(context, normalizedMouseX, normalizedMouseY);
 			}
 		}
@@ -132,19 +139,25 @@ namespace Vicetrice
 		*/
 	void Window::Move(double xpos, double ypos)
 	{
-		if (m_dragging && m_resize == ResizeTypes::NORESIZE && m_moving)
+		if (m_dragging && m_resize == ResizeTypes::NORESIZE)
 		{
 			float normalizedMouseX, normalizedMouseY;
 			NormalizeMouseCoords(xpos, ypos, normalizedMouseX, normalizedMouseY);
 			float deltaXNorm = static_cast<float>(normalizedMouseX - m_lastMouseX);
 			float deltaYNorm = static_cast<float>(normalizedMouseY - m_lastMouseY);
-
-			m_model = glm::translate(m_model, glm::vec3(deltaXNorm, deltaYNorm, 0.0f));
+			if (m_moving)
+			{
+				m_model = glm::translate(m_model, glm::vec3(deltaXNorm, deltaYNorm, 0.0f));
+			}
+			else if (m_SliderEnable && m_sliding)
+			{
+				m_SliderModel = glm::translate(m_SliderModel, glm::vec3(0.0f, deltaYNorm, 0.0f));
+				RenderIcon();
+			}
+			updateLimits();
 
 			m_lastMouseX = normalizedMouseX;
 			m_lastMouseY = normalizedMouseY;
-
-			updateLimits();
 		}
 	}
 
@@ -213,6 +226,8 @@ namespace Vicetrice
 	  * @param context Pointer to the GLFW window context.
 	  * @param xpos X position of the mouse.
 	  * @param ypos Y position of the mouse.
+	  *
+	  * TODO: ADD RESIZING LIMITS
 	  */
 	void Window::Resize(GLFWwindow* context, double xpos, double ypos)
 	{
@@ -264,7 +279,6 @@ namespace Vicetrice
 				break;
 			case Vicetrice::ResizeTypes::LXUYRESIZE:
 				m_vertex[21] = m_vertex[0] += deltaXNorm;
-
 				m_vertex[15] = m_vertex[22] += deltaYNorm;
 				break;
 
@@ -342,6 +356,20 @@ namespace Vicetrice
 
 		m_MaxIconsToRender = static_cast<unsigned int>(((m_WindowLimits[2] - m_WindowLimits[3]) / 0.1) + 1);
 
+		//CAN BE ELIMINATED IF RESIZING LIMITS GOT DEFINED
+		if (m_MaxIconsToRender > 30)
+			m_MaxIconsToRender = 30;
+
+		size_t limit;
+		float SizeForSlider = 0.0f;
+		m_SliderEnable = false;
+
+		if (m_icons.size() > m_MaxIconsToRender - 2)
+		{
+			SizeForSlider = 0.05f;
+			m_SliderEnable = true;
+		}
+
 
 		std::vector<float> IconsToRender;
 		std::vector<unsigned int>IconsIndicesToRender;
@@ -353,23 +381,55 @@ namespace Vicetrice
 
 			//Position								//Color					//VertexID
 			m_vertex[21],	m_vertex[22] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	0.0f,
-			m_vertex[14],	m_vertex[15] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	1.0f
+			m_vertex[14] - SizeForSlider,	m_vertex[15] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	1.0f
 		};
 
-		size_t limit = m_icons.size() < m_MaxIconsToRender ? m_icons.size() : m_MaxIconsToRender;
+		limit = m_icons.size() > m_MaxIconsToRender ? m_MaxIconsToRender : m_icons.size();
 
-		for (size_t i = IndexToFirstIconToRender; i < limit; i++)
+		limit -= m_IndexToFirstIconToRender;
+
+		for (size_t i = m_IndexToFirstIconToRender; i < limit; i++)
 		{
 			m_icons[i].AddToContext(IconsToRender, IconsIndicesToRender, 1, IconCount);
 			++IconCount;
 		}
 
+		if (m_SliderEnable)
+		{
+			//TODO: Crear Vertices del slider a partir de m_SliderLimits
+			float aux[] =
+			{
+				//Position															 //Color				//VertexID
+				m_vertex[14] - 0.05f, m_vertex[15] - 0.3f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 1.0f, //LD
+				m_vertex[14]		 , m_vertex[15] - 0.3f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 2.0f, //RD 
+				m_vertex[14]		 , m_vertex[15] - 0.1f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 3.0f, //RU 
+				m_vertex[14] - 0.05f, m_vertex[15] - 0.1f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 4.0f, //LU
+			};
+
+			float auxIndex[] =
+			{
+				aux[27], aux[6], aux[13],
+				aux[27], aux[20], aux[13]
+
+			};
+
+			for (size_t i = 0; i < sizeof(aux) / sizeof(float); i++)
+			{
+				IconsToRender.emplace_back(aux[i]);
+			}
+			for (size_t i = 0; i < sizeof(auxIndex) / sizeof(float); i++)
+			{
+				IconsIndicesToRender.emplace_back(static_cast<unsigned int>(auxIndex[i]));
+			}
+		}
+
+
 		m_vbI.Update(IconsToRender.data(), static_cast<unsigned int>(IconsToRender.size() * sizeof(float)));
 		m_ibI.Update(IconsIndicesToRender.data(), static_cast<unsigned int>(IconsIndicesToRender.size() * sizeof(unsigned int)));
 
 
-
-		/*bool first = true;
+		/*
+		bool first = true;
 
 		for (size_t i = 0; i < IconsToRender.size(); i++)
 		{
@@ -407,7 +467,7 @@ namespace Vicetrice
 			}
 			std::cout << IconsIndicesToRender[i];
 		}
-		std::cout << "}" << std::endl;*/
+		std::cout << "}" << std::endl; */
 
 
 	}
@@ -457,6 +517,11 @@ namespace Vicetrice
 
 		unsigned int limit = size < m_MaxIconsToRender ? size : m_MaxIconsToRender;
 
+		if (m_SliderEnable)
+		{
+			++limit;
+		}
+
 		GLCall(glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(limit * IndicesPerIcon), GL_UNSIGNED_INT, nullptr));
 
 	}
@@ -471,6 +536,13 @@ namespace Vicetrice
 		m_WindowLimits[1] = m_model[3].x + m_vertex[0];
 		m_WindowLimits[2] = m_model[3].y + m_vertex[15];
 		m_WindowLimits[3] = m_model[3].y + m_vertex[1];
+
+
+		//LIMITES DEL SLIDER
+		m_SlideLimits[0] = m_vertex[14] + m_model[3].x;
+		m_SlideLimits[1] = m_vertex[14] - 0.05f + m_model[3].x;
+		m_SlideLimits[2] = m_vertex[15] - 0.1f + m_model[3].y;
+		m_SlideLimits[3] = m_vertex[15] - 0.3f + m_model[3].y;
 	}
 
 	/**
@@ -485,10 +557,11 @@ namespace Vicetrice
 
 		if (IsMouseInsideObject(normalizedMouseX, normalizedMouseY) && !m_dragging)
 		{
-			bool IsInRx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_vertex[7]);
-			bool IsInLx = IsInBetween(epsilon, normalizedMouseX, m_model[3].x + m_vertex[0]);
-			bool IsInUy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_vertex[15]);
-			bool IsInDy = IsInBetween(epsilon, normalizedMouseY, m_model[3].y + m_vertex[1]);
+
+			bool IsInRx = IsInBetween(epsilon, normalizedMouseX, m_WindowLimits[0]);
+			bool IsInLx = IsInBetween(epsilon, normalizedMouseX, m_WindowLimits[1]);
+			bool IsInUy = IsInBetween(epsilon, normalizedMouseY, m_WindowLimits[2]);
+			bool IsInDy = IsInBetween(epsilon, normalizedMouseY, m_WindowLimits[3]);
 
 
 
@@ -577,10 +650,26 @@ namespace Vicetrice
 		*/
 	bool Window::IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const
 	{
-		return (normalizedMouseX >= m_model[3].x + m_vertex[0] - epsilon &&
-			normalizedMouseX <= m_model[3].x + m_vertex[7] + epsilon &&
-			normalizedMouseY >= m_model[3].y + m_vertex[1] - epsilon &&
-			normalizedMouseY <= m_model[3].y + m_vertex[15] + epsilon);
+		return (normalizedMouseX >= m_WindowLimits[1] - epsilon &&
+			normalizedMouseX <= m_WindowLimits[0] + epsilon &&
+			normalizedMouseY >= m_WindowLimits[3] - epsilon &&
+			normalizedMouseY <= m_WindowLimits[2] + epsilon);
+	}
+
+	bool Window::CheckSlide(float normalizedMouseX, float  normalizedMouseY)
+	{
+		if (m_SliderEnable && IsMouseInsideObject(normalizedMouseX, normalizedMouseY) && m_dragging)
+		{
+
+			bool IsBeforeRx = normalizedMouseX < m_SlideLimits[0] + m_SliderModel[3].x;
+			bool IsAfterLx = normalizedMouseX > m_SlideLimits[1] + m_SliderModel[3].x;
+			bool IsBelowUy = normalizedMouseY < m_SlideLimits[2] + m_SliderModel[3].y;
+			bool IsAboveDy = normalizedMouseY > m_SlideLimits[3] + m_SliderModel[3].y;
+
+			return (IsBeforeRx && IsAfterLx && IsAboveDy && IsBelowUy);
+
+		}
+		return false;
 	}
 
 } // namespace Vicetrice

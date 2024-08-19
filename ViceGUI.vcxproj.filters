@@ -62,7 +62,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="res\shaders\Basic.shader">
+    <Text Include="res\shaders\Icon.shader">
       <Filter>Archivos de origen</Filter>
     </Text>
   </ItemGroup>
