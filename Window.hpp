@@ -172,7 +172,7 @@ namespace Vicetrice
 		std::vector<float> m_vertex;   /// Vertex data of the window.
 		std::vector<unsigned int> m_indices; /// Index data of the window.
 
-		size_t m_IndexToFirstIconToRender; /// Index of the first icon to be rendered.
+		unsigned int m_IndexToFirstIconToRender; /// Index of the first icon to be rendered.
 		unsigned int m_MaxIconsToRender; /// Maximum number of icons to render.
 
 		float m_WindowLimits[4];       /// Array containing the window limits.
@@ -196,7 +196,6 @@ namespace Vicetrice
 		float m_SlideLimits[4];
 		// TODO: ADD TO SLIDERICON CLASS
 		glm::mat4 m_SliderModel;
-
 		bool m_sliding;
 
 

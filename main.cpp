@@ -129,9 +129,7 @@ int main()
 					break;
 				case Events::MouseButton:
 					Vwindow.DragON(window, Button, Action);
-					if (Action == GLFW_PRESS)
-						Vwindow.addIcon();
-
+						
 					break;
 				case Events::ContextSize:
 
@@ -146,8 +144,11 @@ int main()
 				}
 			}
 
-			if (glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS)
+			if (glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS)
 				Vwindow.RemoveIcon();
+			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				Vwindow.addIcon();
+			
 			
 
 			// Configurar el shader y los buffers

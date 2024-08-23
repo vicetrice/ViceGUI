@@ -11,6 +11,7 @@
 #include "Icon.hpp"
 #include <unordered_map>
 #include <memory>
+#include <random>
 
 
 
@@ -152,6 +153,31 @@ namespace Vicetrice
 			else if (m_SliderEnable && m_sliding)
 			{
 				m_SliderModel = glm::translate(m_SliderModel, glm::vec3(0.0f, deltaYNorm, 0.0f));
+
+				if (m_SliderModel[3].y > 0.0f)
+				{
+					m_SliderModel[3][0] = 0.0f;
+					m_SliderModel[3][1] = 0.0f;
+					m_SliderModel[3][2] = 0.0f;
+				}
+				else if (m_SlideLimits[3] + m_SliderModel[3].y < m_WindowLimits[3])
+				{
+					m_SliderModel[3][0] = 0.0f;
+					m_SliderModel[3][1] = m_WindowLimits[3] - m_SlideLimits[3];
+					m_SliderModel[3][2] = 0.0f;
+				}
+
+
+				//Calculate the displacement based on the number of icons
+				float loco = (m_icons.size() - (m_MaxIconsToRender - 2)) != 0 ? (m_WindowLimits[3] - m_SlideLimits[3]) / (m_icons.size() - (m_MaxIconsToRender - 2)) : (m_WindowLimits[3] - m_SlideLimits[3]);
+				unsigned int index = m_SliderModel[3].y / loco;
+
+
+				m_IndexToFirstIconToRender = index;
+				std::cout << "MITR: " << m_MaxIconsToRender << std::endl;
+				std::cout << "MICONS: " << m_icons.size() << std::endl;
+				std::cout << "MD: " << index << std::endl;
+
 				RenderIcon();
 			}
 			updateLimits();
@@ -246,8 +272,6 @@ namespace Vicetrice
 			float deltaXNorm = static_cast<float>(normalizedMouseX - m_lastMouseX);
 			float deltaYNorm = static_cast<float>(normalizedMouseY - m_lastMouseY);
 
-
-
 			switch (m_resize)
 			{
 			case Vicetrice::ResizeTypes::RXRESIZE:
@@ -285,6 +309,23 @@ namespace Vicetrice
 			default:
 				break;
 			}
+			//if (deltaYNorm > 0.0f)
+			//{
+			//	m_SliderModel = glm::translate(m_SliderModel, glm::vec3(0.0f, deltaYNorm, 0.0f));
+			//
+			//	if (m_SliderModel[3].y > 0.0f)
+			//	{
+			//		m_SliderModel[3][0] = 0.0f;
+			//		m_SliderModel[3][1] = 0.0f;
+			//		m_SliderModel[3][2] = 0.0f;
+			//	}
+			//	else if (m_SlideLimits[3] + m_SliderModel[3].y < m_WindowLimits[3])
+			//	{
+			//		m_SliderModel[3][0] = 0.0f;
+			//		m_SliderModel[3][1] = m_WindowLimits[3] - m_SlideLimits[3];
+			//		m_SliderModel[3][2] = 0.0f;
+			//	}
+			//}
 			updateLimits();
 
 			m_vb.Update(m_vertex.data(), static_cast<unsigned int>(m_vertex.size() * sizeof(float)));
@@ -295,11 +336,20 @@ namespace Vicetrice
 	}
 
 	/**
-		 * @brief Adds an icon to the window.
-		 */
+	 * @brief Adds an icon to the window.
+	 */
 	void Window::addIcon()
 	{
-		m_icons.emplace_back(Icon());
+
+		std::random_device rd;  // Fuente de entropía
+		std::mt19937 gen(rd()); // Generador de números aleatorios Mersenne Twister
+
+		// Distribución uniforme entre 0 y 1
+		std::uniform_real_distribution<> dis(0.0, 1.0);
+
+		// Generar un número aleatorio
+		float randomValue = dis(gen);
+		m_icons.emplace_back(Icon(glm::vec4(1.0f, randomValue, 0.0f, 1.0f)));
 		RenderIcon();
 		m_render = true;
 	}
@@ -360,7 +410,7 @@ namespace Vicetrice
 		if (m_MaxIconsToRender > 30)
 			m_MaxIconsToRender = 30;
 
-		size_t limit;
+		unsigned int limit;
 		float SizeForSlider = 0.0f;
 		m_SliderEnable = false;
 
@@ -368,6 +418,15 @@ namespace Vicetrice
 		{
 			SizeForSlider = 0.05f;
 			m_SliderEnable = true;
+		}
+		else
+		{
+			//RESET POSITION
+			m_SliderModel[3][0] = 0.0f;
+			m_SliderModel[3][1] = 0.0f;
+			m_SliderModel[3][2] = 0.0f;
+
+			m_IndexToFirstIconToRender = 0;
 		}
 
 
@@ -379,16 +438,16 @@ namespace Vicetrice
 
 		IconsToRender = {
 
-			//Position								//Color					//VertexID
-			m_vertex[21],	m_vertex[22] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	0.0f,
-			m_vertex[14] - SizeForSlider,	m_vertex[15] - 0.1f,	0.0f,1.0f,1.0f,1.0f,	1.0f
+			//Position											//Color					//VertexID
+			m_vertex[21]				, m_vertex[22] - 0.1f ,	0.0f,1.0f,1.0f,1.0f,	0.0f,
+			m_vertex[14] - SizeForSlider, m_vertex[15] - 0.1f ,	0.0f,1.0f,1.0f,1.0f,	1.0f
 		};
 
-		limit = m_icons.size() > m_MaxIconsToRender ? m_MaxIconsToRender : m_icons.size();
 
-		limit -= m_IndexToFirstIconToRender;
+		limit = m_icons.size() > (m_MaxIconsToRender + m_IndexToFirstIconToRender) ? m_MaxIconsToRender + m_IndexToFirstIconToRender : m_icons.size();
 
-		for (size_t i = m_IndexToFirstIconToRender; i < limit; i++)
+
+		for (unsigned int i = m_IndexToFirstIconToRender; i < limit; i++)
 		{
 			m_icons[i].AddToContext(IconsToRender, IconsIndicesToRender, 1, IconCount);
 			++IconCount;
@@ -397,13 +456,18 @@ namespace Vicetrice
 		if (m_SliderEnable)
 		{
 			//TODO: Crear Vertices del slider a partir de m_SliderLimits
+
+			float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
+			float WindowH = static_cast<float>(m_MaxIconsToRender) > 4.0f ? static_cast<float>(m_MaxIconsToRender) - 4.0f : 0.0f;
+			float VariableSize = 0.13f + (WindowH / size);
+
 			float aux[] =
 			{
-				//Position															 //Color				//VertexID
-				m_vertex[14] - 0.05f, m_vertex[15] - 0.3f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 1.0f, //LD
-				m_vertex[14]		 , m_vertex[15] - 0.3f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 2.0f, //RD 
-				m_vertex[14]		 , m_vertex[15] - 0.1f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 3.0f, //RU 
-				m_vertex[14] - 0.05f, m_vertex[15] - 0.1f + m_SliderModel[3].y,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 4.0f, //LU
+				//Position																	 //Color				//VertexID
+				m_vertex[14] - 0.05f , m_vertex[15] - VariableSize + m_SliderModel[3].y	,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 1.0f, //LD
+				m_vertex[14]		 , m_vertex[15] - VariableSize + m_SliderModel[3].y	,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 2.0f, //RD 
+				m_vertex[14]		 , m_vertex[15] - 0.1f + m_SliderModel[3].y			,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 3.0f, //RU 
+				m_vertex[14] - 0.05f , m_vertex[15] - 0.1f + m_SliderModel[3].y			,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 4.0f, //LU
 			};
 
 			float auxIndex[] =
@@ -413,11 +477,11 @@ namespace Vicetrice
 
 			};
 
-			for (size_t i = 0; i < sizeof(aux) / sizeof(float); i++)
+			for (unsigned int i = 0; i < sizeof(aux) / sizeof(float); i++)
 			{
 				IconsToRender.emplace_back(aux[i]);
 			}
-			for (size_t i = 0; i < sizeof(auxIndex) / sizeof(float); i++)
+			for (unsigned int i = 0; i < sizeof(auxIndex) / sizeof(float); i++)
 			{
 				IconsIndicesToRender.emplace_back(static_cast<unsigned int>(auxIndex[i]));
 			}
@@ -515,7 +579,8 @@ namespace Vicetrice
 
 		unsigned int size = static_cast<unsigned int>(m_icons.size());
 
-		unsigned int limit = size < m_MaxIconsToRender ? size : m_MaxIconsToRender;
+		unsigned int limit = (size - m_IndexToFirstIconToRender) > m_MaxIconsToRender ? m_MaxIconsToRender : size - m_IndexToFirstIconToRender;
+
 
 		if (m_SliderEnable)
 		{
@@ -539,10 +604,14 @@ namespace Vicetrice
 
 
 		//LIMITES DEL SLIDER
+		float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
+		float WindowH = static_cast<float>(m_MaxIconsToRender) > 4.0f ? static_cast<float>(m_MaxIconsToRender) - 4.0f : 0.0f;
+		float VariableSize = 0.13f + (WindowH / size);
 		m_SlideLimits[0] = m_vertex[14] + m_model[3].x;
 		m_SlideLimits[1] = m_vertex[14] - 0.05f + m_model[3].x;
 		m_SlideLimits[2] = m_vertex[15] - 0.1f + m_model[3].y;
-		m_SlideLimits[3] = m_vertex[15] - 0.3f + m_model[3].y;
+		m_SlideLimits[3] = m_vertex[15] - VariableSize + m_model[3].y;
+
 	}
 
 	/**
@@ -627,13 +696,13 @@ namespace Vicetrice
 
 
 	/**
-		* @brief Normalizes mouse coordinates from screen space to OpenGL space.
-		*
-		* @param mouseX X position of the mouse in screen space.
-		* @param mouseY Y position of the mouse in screen space.
-		* @param normalizedX Reference to store the normalized X position.
-		* @param normalizedY Reference to store the normalized Y position.
-		*/
+	* @brief Normalizes mouse coordinates from screen space to OpenGL space.
+	*
+	* @param mouseX X position of the mouse in screen space.
+	* @param mouseY Y position of the mouse in screen space.
+	* @param normalizedX Reference to store the normalized X position.
+	* @param normalizedY Reference to store the normalized Y position.
+	*/
 	void Window::NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const
 	{
 		normalizedX = (2.0f * (static_cast<float>(mouseX) / m_ContextWidth)) - 1.0f;
@@ -642,12 +711,12 @@ namespace Vicetrice
 
 
 	/**
-		* @brief Checks if the mouse is inside the window's object.
-		*
-		* @param normalizedMouseX Normalized X position of the mouse.
-		* @param normalizedMouseY Normalized Y position of the mouse.
-		* @return True if the mouse is inside the object, otherwise false.
-		*/
+	* @brief Checks if the mouse is inside the window's object.
+	*
+	* @param normalizedMouseX Normalized X position of the mouse.
+	* @param normalizedMouseY Normalized Y position of the mouse.
+	* @return True if the mouse is inside the object, otherwise false.
+	*/
 	bool Window::IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const
 	{
 		return (normalizedMouseX >= m_WindowLimits[1] - epsilon &&

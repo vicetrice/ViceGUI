@@ -3,7 +3,7 @@
 
 namespace Vicetrice
 {
-	Icon::Icon()
+	Icon::Icon(glm::vec4 color) : m_color{ color }
 	{}
 
 	void Icon::Draw()
@@ -57,8 +57,8 @@ namespace Vicetrice
 			float aux[] =
 			{	//Positions																	//Color									//VertexID
 
-				ContextVertices[0], ContextVertices[1] - (IconNumber * 0.1f),		0.0f,	1.0f	,1.0f,	1.0f			,ContextVertices.back() + 1.0f,
-				ContextVertices[7], ContextVertices[8] - (IconNumber * 0.1f),		0.0f,	1.0f	,1.0f,	1.0f			,ContextVertices.back() + 2.0f
+				ContextVertices[0], ContextVertices[1] - (IconNumber * 0.1f),		m_color[0],m_color[1],m_color[2],m_color[3]			,ContextVertices.back() + 1.0f,
+				ContextVertices[7], ContextVertices[8] - (IconNumber * 0.1f),		m_color[0],m_color[1],m_color[2],m_color[3]			,ContextVertices.back() + 2.0f
 			};
 
 			float IndexAux[] =

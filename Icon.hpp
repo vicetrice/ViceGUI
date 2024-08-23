@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <cassert>
+#include "vendor/glm/gtc/matrix_transform.hpp"
 
 namespace Vicetrice
 {
@@ -12,7 +13,7 @@ namespace Vicetrice
 	class Icon
 	{
 	public:
-		Icon();
+		Icon(glm::vec4 color);
 
 		void Draw();
 		virtual void OnClick(void(*func)());
@@ -24,6 +25,7 @@ namespace Vicetrice
 		//std::unordered_map<std::string, std::unique_ptr<Icon>> m_icons;
 
 	private:
+		glm::vec4 m_color;
 
 	};
 
