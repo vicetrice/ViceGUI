@@ -150,10 +150,10 @@ namespace Vicetrice
 			{
 				m_model = glm::translate(m_model, glm::vec3(deltaXNorm, deltaYNorm, 0.0f));
 			}
-			else if (m_SliderEnable && m_sliding)
+			if (m_SliderEnable && m_sliding)
 			{
 				m_SliderModel = glm::translate(m_SliderModel, glm::vec3(0.0f, deltaYNorm, 0.0f));
-
+				//std::cout << "normaliz:			" << deltaYNorm << std::endl;
 				if (m_SliderModel[3].y > 0.0f)
 				{
 					m_SliderModel[3][0] = 0.0f;
@@ -169,15 +169,14 @@ namespace Vicetrice
 
 
 				//Calculate the displacement based on the number of icons
-				float loco = (m_icons.size() - (m_MaxIconsToRender - 2)) != 0 ? (m_WindowLimits[3] - m_SlideLimits[3]) / (m_icons.size() - (m_MaxIconsToRender - 2)) : (m_WindowLimits[3] - m_SlideLimits[3]);
-				unsigned int index = m_SliderModel[3].y / loco;
-
-
+				float displacementPerIcon = (m_icons.size() - (m_MaxIconsToRender - 2)) != 0 ? (m_WindowLimits[3] - m_SlideLimits[3]) / (m_icons.size() - (m_MaxIconsToRender - 2)) : (m_WindowLimits[3] - m_SlideLimits[3]);
+				//Calculate the index of the first icon to render based on the displacement
+				unsigned int index = static_cast<unsigned int>(m_SliderModel[3].y / displacementPerIcon);
 				m_IndexToFirstIconToRender = index;
-				std::cout << "MITR: " << m_MaxIconsToRender << std::endl;
-				std::cout << "MICONS: " << m_icons.size() << std::endl;
-				std::cout << "MD: " << index << std::endl;
 
+				//std::cout << "MITR: " << m_MaxIconsToRender << std::endl;
+				//std::cout << "MICONS: " << m_icons.size() << std::endl;
+				//std::cout << "MD: " << index << std::endl;
 				RenderIcon();
 			}
 			updateLimits();
@@ -233,7 +232,7 @@ namespace Vicetrice
 		}
 		std::cout << "}" << std::endl;*/
 
-
+		//Si es maxiconstorender + firstindextorender > icons.size restar 1
 
 		m_shader.Bind();
 		m_shader.SetUniformMat4f("u_M", m_model);
@@ -327,6 +326,15 @@ namespace Vicetrice
 			//	}
 			//}
 			updateLimits();
+			if (m_IndexToFirstIconToRender != 0 && (m_MaxIconsToRender + m_IndexToFirstIconToRender - 2) > m_icons.size())
+			{
+				--m_IndexToFirstIconToRender;
+			}
+
+			float displacementPerIcon = (m_icons.size() - (m_MaxIconsToRender - 2)) != 0 ? (m_WindowLimits[3] - m_SlideLimits[3]) / (m_icons.size() - (m_MaxIconsToRender - 2)) : (m_WindowLimits[3] - m_SlideLimits[3]);
+			//Calculate Slider position based on index
+			float displacement = displacementPerIcon * m_IndexToFirstIconToRender;
+			m_SliderModel[3].y = displacement;
 
 			m_vb.Update(m_vertex.data(), static_cast<unsigned int>(m_vertex.size() * sizeof(float)));
 			RenderIcon();
@@ -348,7 +356,7 @@ namespace Vicetrice
 		std::uniform_real_distribution<> dis(0.0, 1.0);
 
 		// Generar un número aleatorio
-		float randomValue = dis(gen);
+		float randomValue = static_cast<float>(dis(gen));
 		m_icons.emplace_back(Icon(glm::vec4(1.0f, randomValue, 0.0f, 1.0f)));
 		RenderIcon();
 		m_render = true;
@@ -405,6 +413,9 @@ namespace Vicetrice
 		}
 
 		m_MaxIconsToRender = static_cast<unsigned int>(((m_WindowLimits[2] - m_WindowLimits[3]) / 0.1) + 1);
+		if (m_MaxIconsToRender == 0)
+			m_MaxIconsToRender = 2;
+
 
 		//CAN BE ELIMINATED IF RESIZING LIMITS GOT DEFINED
 		if (m_MaxIconsToRender > 30)
@@ -418,6 +429,7 @@ namespace Vicetrice
 		{
 			SizeForSlider = 0.05f;
 			m_SliderEnable = true;
+			updateLimits();
 		}
 		else
 		{
@@ -456,10 +468,12 @@ namespace Vicetrice
 		if (m_SliderEnable)
 		{
 			//TODO: Crear Vertices del slider a partir de m_SliderLimits
-
-			float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
+			//IMPORTANT: DANGEROUS CALCULATIONS AHEAD CHANGE IN CASE OF BUGS
 			float WindowH = static_cast<float>(m_MaxIconsToRender) > 4.0f ? static_cast<float>(m_MaxIconsToRender) - 4.0f : 0.0f;
-			float VariableSize = 0.13f + (WindowH / size);
+			float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
+			float Aux = 0.13f + (WindowH / size);
+			float VariableSize = (Aux > 1.0f || Aux < -1.0f) ? 0.13f : Aux;
+			//END OF IMPORTANT
 
 			float aux[] =
 			{
@@ -492,8 +506,8 @@ namespace Vicetrice
 		m_ibI.Update(IconsIndicesToRender.data(), static_cast<unsigned int>(IconsIndicesToRender.size() * sizeof(unsigned int)));
 
 
-		/*
-		bool first = true;
+
+		/*bool first = true;
 
 		for (size_t i = 0; i < IconsToRender.size(); i++)
 		{
@@ -531,7 +545,7 @@ namespace Vicetrice
 			}
 			std::cout << IconsIndicesToRender[i];
 		}
-		std::cout << "}" << std::endl; */
+		std::cout << "}" << std::endl;*/
 
 
 	}
@@ -604,9 +618,13 @@ namespace Vicetrice
 
 
 		//LIMITES DEL SLIDER
-		float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
+		//IMPORTANT: DANGEROUS CALCULATIONS AHEAD CHANGE IN CASE OF BUGS
 		float WindowH = static_cast<float>(m_MaxIconsToRender) > 4.0f ? static_cast<float>(m_MaxIconsToRender) - 4.0f : 0.0f;
-		float VariableSize = 0.13f + (WindowH / size);
+		float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
+		float Aux = 0.13f + (WindowH / size);
+		float VariableSize = (Aux > 1.0f || Aux < -1.0f) ? 0.13f : Aux;
+		//END OF IMPORTANT
+
 		m_SlideLimits[0] = m_vertex[14] + m_model[3].x;
 		m_SlideLimits[1] = m_vertex[14] - 0.05f + m_model[3].x;
 		m_SlideLimits[2] = m_vertex[15] - 0.1f + m_model[3].y;
@@ -729,7 +747,6 @@ namespace Vicetrice
 	{
 		if (m_SliderEnable && IsMouseInsideObject(normalizedMouseX, normalizedMouseY) && m_dragging)
 		{
-
 			bool IsBeforeRx = normalizedMouseX < m_SlideLimits[0] + m_SliderModel[3].x;
 			bool IsAfterLx = normalizedMouseX > m_SlideLimits[1] + m_SliderModel[3].x;
 			bool IsBelowUy = normalizedMouseY < m_SlideLimits[2] + m_SliderModel[3].y;
