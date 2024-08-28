@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <memory>
 #include <random>
-
+#include <chrono>
 
 
 
@@ -45,11 +45,11 @@ namespace Vicetrice
 		m_IndexToFirstIconToRender{ 0 },
 		m_MaxIconsToRender{ 40 },
 		m_va{},
-		m_vb{ IniVertex(), static_cast <unsigned int> (sizeof(float) * m_vertex.size()) },
+		m_vb{ IniVertex(), (static_cast <unsigned int> (sizeof(float) * m_vertex.size())) + (VerticesPerIcon * m_MaxIconsToRender * sizeof(float))},
 		m_shader{ "res/shaders/Window.shader" },
-		m_ib{ IniIndex(),static_cast<unsigned int> (sizeof(unsigned int) * m_indices.size()) },
+		m_ib{ IniIndex(),(static_cast<unsigned int> (sizeof(unsigned int) * m_indices.size())) + (IndicesPerIcon * m_MaxIconsToRender * sizeof(unsigned int)) },
 		m_vaI{},
-		m_vbI{ nullptr,VerticesPerIcon * m_MaxIconsToRender * sizeof(float) },
+		m_vbI{ nullptr,VerticesPerIcon * m_MaxIconsToRender * sizeof(float)},
 		m_shaderI{ "res/shaders/Icon.shader" },
 		m_ibI{ nullptr,IndicesPerIcon * m_MaxIconsToRender * sizeof(unsigned int) },
 		m_SliderEnable{ false },
@@ -153,7 +153,6 @@ namespace Vicetrice
 			if (m_SliderEnable && m_sliding)
 			{
 				m_SliderModel = glm::translate(m_SliderModel, glm::vec3(0.0f, deltaYNorm, 0.0f));
-				//std::cout << "normaliz:			" << deltaYNorm << std::endl;
 				if (m_SliderModel[3].y > 0.0f)
 				{
 					m_SliderModel[3][0] = 0.0f;
@@ -232,8 +231,6 @@ namespace Vicetrice
 		}
 		std::cout << "}" << std::endl;*/
 
-		//Si es maxiconstorender + firstindextorender > icons.size restar 1
-
 		m_shader.Bind();
 		m_shader.SetUniformMat4f("u_M", m_model);
 
@@ -276,30 +273,34 @@ namespace Vicetrice
 			case Vicetrice::ResizeTypes::RXRESIZE:
 				m_vertex[7] = m_vertex[14] += deltaXNorm;
 				break;
+
 			case Vicetrice::ResizeTypes::LXRESIZE:
 				m_vertex[21] = m_vertex[0] += deltaXNorm;
 				break;
+
 			case Vicetrice::ResizeTypes::UYRESIZE:
 				m_vertex[15] = m_vertex[22] += deltaYNorm;
 				break;
+
 			case Vicetrice::ResizeTypes::DYRESIZE:
 				m_vertex[1] = m_vertex[8] += deltaYNorm;
 				break;
+
 			case Vicetrice::ResizeTypes::RXDYRESIZE:
 				m_vertex[7] = m_vertex[14] += deltaXNorm;
 				m_vertex[1] = m_vertex[8] += deltaYNorm;
-
 				break;
+
 			case Vicetrice::ResizeTypes::RXUYRESIZE:
 				m_vertex[7] = m_vertex[14] += deltaXNorm;
 				m_vertex[15] = m_vertex[22] += deltaYNorm;
-
 				break;
+
 			case Vicetrice::ResizeTypes::LXDYRESIZE:
 				m_vertex[21] = m_vertex[0] += deltaXNorm;
 				m_vertex[1] = m_vertex[8] += deltaYNorm;
-
 				break;
+
 			case Vicetrice::ResizeTypes::LXUYRESIZE:
 				m_vertex[21] = m_vertex[0] += deltaXNorm;
 				m_vertex[15] = m_vertex[22] += deltaYNorm;
@@ -308,23 +309,7 @@ namespace Vicetrice
 			default:
 				break;
 			}
-			//if (deltaYNorm > 0.0f)
-			//{
-			//	m_SliderModel = glm::translate(m_SliderModel, glm::vec3(0.0f, deltaYNorm, 0.0f));
-			//
-			//	if (m_SliderModel[3].y > 0.0f)
-			//	{
-			//		m_SliderModel[3][0] = 0.0f;
-			//		m_SliderModel[3][1] = 0.0f;
-			//		m_SliderModel[3][2] = 0.0f;
-			//	}
-			//	else if (m_SlideLimits[3] + m_SliderModel[3].y < m_WindowLimits[3])
-			//	{
-			//		m_SliderModel[3][0] = 0.0f;
-			//		m_SliderModel[3][1] = m_WindowLimits[3] - m_SlideLimits[3];
-			//		m_SliderModel[3][2] = 0.0f;
-			//	}
-			//}
+
 			updateLimits();
 			if (m_IndexToFirstIconToRender != 0 && (m_MaxIconsToRender + m_IndexToFirstIconToRender - 2) > m_icons.size())
 			{
@@ -407,7 +392,10 @@ namespace Vicetrice
 		*/
 	void Window::RenderIcon()
 	{
-		if (m_icons.size() == 0)
+
+		auto start = std::chrono::high_resolution_clock::now();
+
+		if (m_icons.empty())
 		{
 			return;
 		}
@@ -445,6 +433,9 @@ namespace Vicetrice
 		std::vector<float> IconsToRender;
 		std::vector<unsigned int>IconsIndicesToRender;
 
+		IconsToRender.reserve(VerticesPerIcon * m_MaxIconsToRender);
+		IconsIndicesToRender.reserve(IndicesPerIcon * m_MaxIconsToRender);
+
 		unsigned int IconCount = 1;
 
 
@@ -478,10 +469,10 @@ namespace Vicetrice
 			float aux[] =
 			{
 				//Position																	 //Color				//VertexID
-				m_vertex[14] - 0.05f , m_vertex[15] - VariableSize + m_SliderModel[3].y	,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 1.0f, //LD
-				m_vertex[14]		 , m_vertex[15] - VariableSize + m_SliderModel[3].y	,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 2.0f, //RD 
-				m_vertex[14]		 , m_vertex[15] - 0.1f + m_SliderModel[3].y			,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 3.0f, //RU 
-				m_vertex[14] - 0.05f , m_vertex[15] - 0.1f + m_SliderModel[3].y			,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 4.0f, //LU
+				m_vertex[14] - 0.04f , m_vertex[15] - VariableSize + m_SliderModel[3].y	,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 1.0f, //LD
+				m_vertex[14] - 0.01f , m_vertex[15] - VariableSize + m_SliderModel[3].y	,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 2.0f, //RD 
+				m_vertex[14] - 0.01f , m_vertex[15] - 0.1f + m_SliderModel[3].y			,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 3.0f, //RU 
+				m_vertex[14] - 0.04f , m_vertex[15] - 0.1f + m_SliderModel[3].y			,	 1.0f,1.0f,1.0f,1.0f,	IconsToRender.back() + 4.0f, //LU
 			};
 
 			float auxIndex[] =
@@ -505,7 +496,10 @@ namespace Vicetrice
 		m_vbI.Update(IconsToRender.data(), static_cast<unsigned int>(IconsToRender.size() * sizeof(float)));
 		m_ibI.Update(IconsIndicesToRender.data(), static_cast<unsigned int>(IconsIndicesToRender.size() * sizeof(unsigned int)));
 
+		auto end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> elapsed = end - start;
 
+		std::cout << "Elapsed time: " << elapsed.count() << " milliseconds" << std::endl;
 
 		/*bool first = true;
 
@@ -552,12 +546,16 @@ namespace Vicetrice
 
 
 	/**
-		 * @brief Removes an icon from the window.
-		 */
+	* @brief Removes an icon from the window.
+	*/
 	void Window::RemoveIcon()
 	{
 		if (!m_icons.empty())
 			m_icons.pop_back();
+		if (m_IndexToFirstIconToRender != 0 && (m_MaxIconsToRender + m_IndexToFirstIconToRender - 2) > m_icons.size())
+		{
+			--m_IndexToFirstIconToRender;
+		}
 		RenderIcon();
 		m_render = true;
 	}

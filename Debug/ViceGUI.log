@@ -1,0 +1,16 @@
+﻿  Icon.cpp
+  IndexBuffer.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\Error.hpp(3,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  main.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\main.cpp(1,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  Shader.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\Error.hpp(3,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  VertexArray.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\VertexBuffer.hpp(3,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  VertexBuffer.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\VertexBuffer.hpp(3,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  VertexBufferLayout.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\VertexBufferLayout.hpp(4,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  Window.cpp
+C:\Users\alvar\Desktop\ViceGUIconIcons\ViceGUI\Window.cpp(1,10): error C1083: No se puede abrir el archivo incluir: 'GL/glew.h': No such file or directory
+  Generando código...

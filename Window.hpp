@@ -33,7 +33,9 @@ namespace Vicetrice
 	 */
 	class Window
 	{
+
 	public:
+
 		/**
 		 * @brief Constructor for the Window class.
 		 *
@@ -190,10 +192,11 @@ namespace Vicetrice
 		IndexBuffer m_ibI;             /// Index buffer object for the icons.
 
 		std::vector<Icon> m_icons;     /// Vector containing all icons in the window.
-		
-		
+
+
 		bool m_SliderEnable;
 		float m_SlideLimits[4];
+
 		// TODO: ADD TO SLIDERICON CLASS
 		glm::mat4 m_SliderModel;
 		bool m_sliding;
