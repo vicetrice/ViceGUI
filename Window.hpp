@@ -1,14 +1,24 @@
 #pragma once
 
-#include "vendor/glm/glm.hpp"
-#include "vendor/glm/gtc/matrix_transform.hpp"
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "IndexBuffer.hpp"
-#include "Shader.hpp"
-#include "VertexArray.hpp"
-#include <string>
 
+//STD
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <random>
+#include <chrono>
+
+//VENDOR
+#include "vendor/glm/gtc/matrix_transform.hpp"
+#include "vendor/glm/gtc/type_ptr.hpp"
+
+//CUSTOM
 #include "Icon.hpp"
+#include "Shader.hpp"
+#include "Renderer.hpp"
 
 namespace Vicetrice
 {
@@ -33,6 +43,13 @@ namespace Vicetrice
 	 */
 	class Window
 	{
+		struct Vertex
+		{
+			glm::vec2 Position;
+			glm::vec4 Color;
+			glm::vec2 TexCoord;
+			unsigned int TexID;
+		};
 
 	public:
 
@@ -129,25 +146,25 @@ namespace Vicetrice
 			return m_model;
 		}
 
-		/**
-		 * @brief Provides access to the vertex data of the window.
-		 *
-		 * @return A reference to the vector containing vertex data.
-		 */
-		inline std::vector<float>& Vertices()
-		{
-			return m_vertex;
-		}
-
-		/**
-		 * @brief Provides access to the index data of the window.
-		 *
-		 * @return A reference to the vector containing index data.
-		 */
-		inline std::vector<unsigned int>& Indices()
-		{
-			return m_indices;
-		}
+		///**
+		// * @brief Provides access to the vertex data of the window.
+		// *
+		// * @return A reference to the vector containing vertex data.
+		// */
+		//inline std::vector<glm::vec2>& Vertices()
+		//{
+		//	return m_vertexPositions;
+		//}
+		//
+		///**
+		// * @brief Provides access to the index data of the window.
+		// *
+		// * @return A reference to the vector containing index data.
+		// */
+		//inline std::vector<unsigned int>& Indices()
+		//{
+		//	return m_indices;
+		//}
 
 
 
@@ -155,9 +172,16 @@ namespace Vicetrice
 
 
 		//---------------------------------------- ATTRIBUTES
-
+		struct Limits
+		{
+			float right;
+			float left;
+			float up;
+			float down;
+		};
+		
+		// Window
 		glm::mat4 m_model;             /// Model matrix of the window.
-		glm::mat4 m_proj;              /// Projection matrix of the window.
 
 		bool m_dragging;               /// Flag indicating if the window is being dragged.
 		bool m_render;                 /// Flag indicating if the window is being rendered.
@@ -171,36 +195,28 @@ namespace Vicetrice
 		ResizeTypes m_resize;          /// Current resize type.
 		bool m_moving;                 /// Flag indicating if the window is moving.
 
-		std::vector<float> m_vertex;   /// Vertex data of the window.
-		std::vector<unsigned int> m_indices; /// Index data of the window.
+		
+		Limits m_WindowLimits;       
+		Renderer m_WindowRenderer;
+		Shader m_WindowShader;
 
+		// Icons
 		unsigned int m_IndexToFirstIconToRender; /// Index of the first icon to be rendered.
 		unsigned int m_MaxIconsToRender; /// Maximum number of icons to render.
 
-		float m_WindowLimits[4];       /// Array containing the window limits.
-
-		// Window
-		VertexArray m_va;              /// Vertex array object for the window.
-		VertexBuffer m_vb;             /// Vertex buffer object for the window.
-		Shader m_shader;               /// Shader object for the window.
-		IndexBuffer m_ib;              /// Index buffer object for the window.
-
-		// Icons
-		VertexArray m_vaI;             /// Vertex array object for the icons.
-		VertexBuffer m_vbI;            /// Vertex buffer object for the icons.
-		Shader m_shaderI;              /// Shader object for the icons.
-		IndexBuffer m_ibI;             /// Index buffer object for the icons.
-
-		std::vector<Icon> m_icons;     /// Vector containing all icons in the window.
-
+		std::vector<Icon<Vertex>> m_icons;     /// Vector containing all icons in the window.
 
 		bool m_SliderEnable;
-		float m_SlideLimits[4];
+		Limits m_SlideLimits;
 
 		// TODO: ADD TO SLIDERICON CLASS
 		glm::mat4 m_SliderModel;
 		bool m_sliding;
 
+		////Font Textures
+		//unsigned int m_FontTexture;
+		//stbtt_bakedchar m_cdata[96];
+		//
 
 		//---------------------------------------- PRIVATE METHODS
 
@@ -221,8 +237,9 @@ namespace Vicetrice
 		 * @param normalizedMouseY Normalized Y position of the mouse.
 		 * @return True if the mouse is inside the object, otherwise false.
 		 */
-		bool IsMouseInsideObject(float normalizedMouseX, float normalizedMouseY) const;
+		bool IsMouseInsideWindow(float normalizedMouseX, float normalizedMouseY) const;
 
+		bool IsMouseInsideMovingPart(float normalizedMouseX, float normalizedMouseY) const;
 		/**
 		 * @brief Helper function to check if a point is within limits, considering a tolerance (epsilon).
 		 *
@@ -250,31 +267,32 @@ namespace Vicetrice
 		 */
 		void CheckResize(GLFWwindow* context, float normalizedMouseX, float normalizedMouseY);
 
-		/**
-		 * @brief Initializes the vertex data for the window.
-		 *
-		 * @return Pointer to the vertex data array.
-		 */
-		float* IniVertex();
-
-		/**
-		 * @brief Initializes the index data for the window.
-		 *
-		 * @return Pointer to the index data array.
-		 */
-		unsigned int* IniIndex();
-
-		/**
-		 * @brief Renders an icon on the window.
-		 */
-		void RenderIcon();
 
 		/**
 		 * @brief Updates the limits of the window based on its current position and size.
 		 */
-		void updateLimits();
+		void updateWindowLimits();
 
 		bool CheckSlide(float normalizedMouseX, float  normalizedMouseY);
+
+
+		int LoadFontTexture();
+
+		void renderText(const std::string& text, float x, float y, float scale);
+
+		void CreateWindowFrame();
+
+		void ConfigWindowShader();
+
+		void updateHardWposition();
+
+		void updateSlider();
+
+		//void updateHardFramePosition();
+
+		unsigned int CalculateMaxIconsToRender();
+
+		float UpdateSliderLimits();
 
 	}; // class Window
 

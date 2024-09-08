@@ -4,8 +4,8 @@ module;
 // #define GLM_EXT_INLINE_NAMESPACE to inline glm::ext into glm
 // #define GLM_GTX_INLINE_NAMESPACE to inline glm::gtx into glm
 
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
+#include "../../vendor/glm/glm.hpp"
+#include "../../vendor/glm/ext.hpp"
 
 export module glm;
 
