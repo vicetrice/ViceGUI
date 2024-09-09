@@ -15,6 +15,7 @@
 #include "vendor/glm/gtc/matrix_transform.hpp"
 #include "vendor/glm/gtc/type_ptr.hpp"
 
+
 //CUSTOM
 #include "Icon.hpp"
 #include "Shader.hpp"
@@ -48,7 +49,7 @@ namespace Vicetrice
 			glm::vec2 Position;
 			glm::vec4 Color;
 			glm::vec2 TexCoord;
-			unsigned int TexID;
+			int		  TexID;
 		};
 
 	public:
@@ -109,7 +110,7 @@ namespace Vicetrice
 		/**
 		 * @brief Adds an icon to the window.
 		 */
-		void addIcon();
+		void addIcon(const std::string &NameToDisplay);
 
 		/**
 		 * @brief Removes an icon from the window.
@@ -182,12 +183,15 @@ namespace Vicetrice
 		
 		// Window
 		glm::mat4 m_model;             /// Model matrix of the window.
+		glm::mat4 m_proj;
 
 		bool m_dragging;               /// Flag indicating if the window is being dragged.
 		bool m_render;                 /// Flag indicating if the window is being rendered.
 
-		int m_ContextWidth;            /// Width of the window context.
-		int m_ContextHeight;           /// Height of the window context.
+		int m_BaseContextWidth;        /// Initial Width of the window context.
+		int m_BaseContextHeight;       /// Initial Height of the window context.
+		int m_ContextWidth;			   /// Current Width of the window context.
+		int m_ContextHeight;		   /// Current Height of the window context.
 
 		double m_lastMouseX;           /// Last X position of the mouse.
 		double m_lastMouseY;           /// Last Y position of the mouse.
@@ -203,20 +207,18 @@ namespace Vicetrice
 		// Icons
 		unsigned int m_IndexToFirstIconToRender; /// Index of the first icon to be rendered.
 		unsigned int m_MaxIconsToRender; /// Maximum number of icons to render.
+		unsigned int m_TotalVerticesToRender;
 
 		std::vector<Icon<Vertex>> m_icons;     /// Vector containing all icons in the window.
 
 		bool m_SliderEnable;
 		Limits m_SlideLimits;
 
-		// TODO: ADD TO SLIDERICON CLASS
 		glm::mat4 m_SliderModel;
 		bool m_sliding;
 
-		////Font Textures
-		//unsigned int m_FontTexture;
-		//stbtt_bakedchar m_cdata[96];
-		//
+	
+		
 
 		//---------------------------------------- PRIVATE METHODS
 
@@ -228,8 +230,19 @@ namespace Vicetrice
 		 * @param normalizedX Reference to store the normalized X position.
 		 * @param normalizedY Reference to store the normalized Y position.
 		 */
-		void NormalizeMouseCoords(double mouseX, double mouseY, float& normalizedX, float& normalizedY) const;
+		void NormalizeCoords(double X, double Y, float& normalizedX, float& normalizedY) const;
 
+		/**
+		 * @brief Denormalizes coordinates from OpenGL space back to screen space.
+		 *
+		 * @param normalizedX Normalized X coordinate (from -1.0 to 1.0 in OpenGL space).
+		 * @param normalizedY Normalized Y coordinate (from -1.0 to 1.0 in OpenGL space).
+		 * @param X Reference to store the screen space X coordinate.
+		 * @param Y Reference to store the screen space Y coordinate.
+		 */
+		void DeNormalizeCoords(float normalizedX, float normalizedY, double& X, double& Y) const;
+		
+		
 		/**
 		 * @brief Checks if the mouse is inside the window's object.
 		 *
@@ -276,9 +289,8 @@ namespace Vicetrice
 		bool CheckSlide(float normalizedMouseX, float  normalizedMouseY);
 
 
-		int LoadFontTexture();
-
-		void renderText(const std::string& text, float x, float y, float scale);
+		
+		void GenerateTextVertices(std::vector<Vertex>& VertexStorage ,const std::string& text, float normalizedX, float normalizedY, float scale);
 
 		void CreateWindowFrame();
 
@@ -288,11 +300,11 @@ namespace Vicetrice
 
 		void updateSlider();
 
-		//void updateHardFramePosition();
-
 		unsigned int CalculateMaxIconsToRender();
 
 		float UpdateSliderLimits();
+
+
 
 	}; // class Window
 

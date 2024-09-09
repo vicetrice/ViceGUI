@@ -8,6 +8,7 @@ namespace Vicetrice
 	Renderer::Renderer(unsigned int VBOcapacity, unsigned int EBOcapacity, const std::vector<VertexBufferElement>& layout, RendererType rendertype)
 		:
 		m_VAO(0),
+		m_TextureArrayID(0),
 		m_layout(layout),
 		m_renderType(rendertype),
 		m_VerticesCapacity(VBOcapacity),
@@ -27,6 +28,28 @@ namespace Vicetrice
 		default:
 			break;
 		}
+
+		// Generate texture array ID
+		GLCall(glGenTextures(1, &m_TextureArrayID));
+		GLCall(glBindTexture(GL_TEXTURE_2D_ARRAY, m_TextureArrayID));
+
+		// Set texture parameters
+		GLCall(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT));
+		GLCall(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT));
+		GLCall(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		GLCall(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+		// Allocate space for texture array
+		int width = 512;
+		int height = 512;
+		int layers = 4; // Adjust as needed
+		GLCall(glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+
+		// Load font texture
+		if (LoadFontTexture() < 0)
+		{
+			std::cerr << "ERROR LOADING FONT TEXTURE" << std::endl;
+		}
 	}
 
 	Renderer::~Renderer()
@@ -37,14 +60,20 @@ namespace Vicetrice
 			GLCall(glDeleteBuffers(1, &vboInfo.OpenglID));
 		}
 
-
 		for (const auto& eboInfo : m_indexBuff)
 		{
 			GLCall(glDeleteBuffers(1, &eboInfo.OpenglID));
 		}
 
+		if (m_VAO != 0)
+		{
+			GLCall(glDeleteVertexArrays(1, &m_VAO));
+		}
 
-		GLCall(glDeleteVertexArrays(1, &m_VAO));
+		if (m_TextureArrayID != 0)
+		{
+			GLCall(glDeleteTextures(1, &m_TextureArrayID));
+		}
 
 	}
 
@@ -55,8 +84,15 @@ namespace Vicetrice
 
 	void Renderer::DrawEBO(unsigned int EBOid, unsigned int count, const Shader& shader, unsigned int offset) const
 	{
-		shader.Bind();
+		
+		
 		GLCall(glBindVertexArray(m_VAO));
+
+		shader.Bind();
+
+		GLCall(glActiveTexture(GL_TEXTURE0));
+		GLCall(glBindTexture(GL_TEXTURE_2D_ARRAY, m_TextureArrayID));
+
 		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuff[EBOid].OpenglID));
 		GLCall(glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (const void*)offset));
 	}
@@ -107,12 +143,16 @@ namespace Vicetrice
 	//---------------------------------------- SINGLE BUFFER RENDERER
 
 
-	void Renderer::DrawVBO(unsigned int count, const Shader& shader, unsigned int offset) const
+	void Renderer::DrawVAO(unsigned int count, const Shader& shader, unsigned int offset) const
 	{
 		GLCall(glBindVertexArray(m_VAO));
+
 		shader.Bind();
 
-		GLCall(glDrawArrays(GL_POINTS, offset, count));
+		GLCall(glActiveTexture(GL_TEXTURE0));
+		GLCall(glBindTexture(GL_TEXTURE_2D_ARRAY, m_TextureArrayID));
+
+		GLCall(glDrawArrays(GL_TRIANGLES, offset, count));
 	}
 
 	void Renderer::UpdateVBO(const void* data, size_t size, unsigned int offset)
@@ -130,7 +170,11 @@ namespace Vicetrice
 		m_indexBuff[0].BuffSize = std::max(m_indexBuff[0].BuffSize, static_cast<unsigned int>(offset + size));
 	}
 
-	//---------------------------------------- PRIVATE
+
+	
+
+
+	//---------------------------------------- PRIVATE ----------------------------------------
 
 	void Renderer::SetupSeparatedBuffers(unsigned int VBOcapacity, unsigned int EBOcapacity)
 	{
@@ -214,6 +258,43 @@ namespace Vicetrice
 		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
 		GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexBuff[0].BuffCapacity, nullptr, GL_DYNAMIC_DRAW));
 
+	}
+
+	//---------------------------------------- TEXTURES
+
+	int Renderer::LoadFontTexture()
+	{
+		std::vector<unsigned char> ttf_buffer(1 << 20); // 1MB
+		std::vector<unsigned char> temp_bitmap(512 * 512); // 512x512 bitmap
+
+		FILE* fontFile;
+		errno_t err = fopen_s(&fontFile, "res/textures/arial.ttf", "rb");
+		if (err != 0) {
+			std::cerr << "No se pudo abrir el archivo de fuente. Error: " << err << std::endl;
+			return -1;
+		}
+
+		size_t readSize = fread(ttf_buffer.data(), 1, ttf_buffer.size(), fontFile);
+		if (readSize <= 0) {
+			std::cerr << "Error al leer el archivo de fuente" << std::endl;
+			fclose(fontFile);
+			return -1;
+		}
+		fclose(fontFile);
+
+		// Generar el bitmap de la fuente
+		stbtt_BakeFontBitmap(ttf_buffer.data(), 0, 32.0, temp_bitmap.data(), 512, 512, 32, 96, m_cdata);
+
+		GLCall(glTexSubImage3D(
+			GL_TEXTURE_2D_ARRAY,     // Target: textura array
+			0,                       // Nivel de mipmap (nivel base)
+			0, 0, 0,                 // Posición x, y y capa (capa 0 en este caso)
+			512, 512, 1,             // Ancho, alto, profundidad (profundidad = 1 porque es 2D)
+			GL_RED,                  // Formato de los datos de la textura
+			GL_UNSIGNED_BYTE,        // Tipo de los datos
+			temp_bitmap.data()       // Datos de la textura
+		));
+		return 0;
 	}
 
 }//namespace Vicetrice

@@ -5,6 +5,8 @@
 #include "Shader.hpp"
 #include "Error.hpp"
 
+#include "vendor/stb/stb_truetype.h"
+
 
 #include <vector>
 #include <string>
@@ -86,7 +88,7 @@ namespace Vicetrice
 
 		//---------------------------------------- SINGLE BUFFER RENDERER
 
-		void DrawVBO(unsigned int count, const Shader& shader, unsigned int offset = 0) const;
+		void DrawVAO(unsigned int count, const Shader& shader, unsigned int offset = 0) const;
 
 		void UpdateVBO(const void* data, size_t size, unsigned int offset = 0);
 
@@ -123,8 +125,18 @@ namespace Vicetrice
 		}
 
 
+		//---------------------------------------- TEXTURES
+
+		inline const stbtt_bakedchar* FontInfo() const
+		{
+			return m_cdata;
+		}
+		
+
 	private:
 		unsigned int m_VAO;
+		unsigned int m_TextureArrayID;
+		
 		std::vector<VertexBufferElement> m_layout;
 
 		std::vector<BufferInfo> m_indexBuff; // Stores information about element buffer objects
@@ -134,7 +146,11 @@ namespace Vicetrice
 		unsigned int m_VerticesCapacity;
 		unsigned int m_ElementsCapacity;
 
+		///Font Textures
+		stbtt_bakedchar m_cdata[96];
+
 		void SetupSingleBuffer(unsigned int VBOcapacity, unsigned int EBOcapacity);
 		void SetupSeparatedBuffers(unsigned int VBOcapacity, unsigned int EBOcapacity);
+		int LoadFontTexture();
 	};
 }

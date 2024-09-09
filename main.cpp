@@ -68,7 +68,7 @@ int main()
 
 		do
 		{
-			
+
 			glfwWaitEvents();
 			auto start = std::chrono::steady_clock::now(); // Start timer
 			if (!events.empty()) {
@@ -103,7 +103,10 @@ int main()
 			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 				Vwindow.RemoveIcon();
 			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-				Vwindow.addIcon();
+			{
+
+				Vwindow.addIcon("Sapeee");
+			}
 
 			if (Vwindow.Rendering() || Vwindow.Dragging())
 			{

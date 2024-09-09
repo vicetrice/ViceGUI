@@ -11,7 +11,6 @@
 #include <utility>
 
 #include "vendor/glm/gtc/matrix_transform.hpp"
-#include "vendor/stb/stb_truetype.h"
 
 namespace Vicetrice
 {
@@ -30,7 +29,7 @@ namespace Vicetrice
 
 		}
 
-		inline virtual const std::vector<T> &GetVertices()
+		inline virtual const std::vector<T> &GetVertices() const
 		{
 			return m_vertices;
 		}
