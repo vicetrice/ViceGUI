@@ -105,7 +105,8 @@ int main()
 			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 			{
 
-				Vwindow.addIcon("Sapeee");
+
+				Vwindow.addIcon("CARO");
 			}
 
 			if (Vwindow.Rendering() || Vwindow.Dragging())

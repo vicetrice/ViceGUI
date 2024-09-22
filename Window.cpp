@@ -26,7 +26,7 @@ namespace Vicetrice
 		{ GL_FLOAT, 2, GL_FALSE, sizeof(glm::vec2) },			//POSITION
 		{ GL_FLOAT, 4, GL_FALSE, sizeof(glm::vec4) },			//COLOR
 		{ GL_FLOAT, 2, GL_FALSE, sizeof(glm::vec2) },			//TEXCOORD										
-		{ GL_INT, 1, GL_FALSE, sizeof(int) }					//TEXID										
+		{ GL_INT  , 1, GL_FALSE, sizeof(int)	   }			//TEXID										
 
 	};
 
@@ -63,7 +63,7 @@ namespace Vicetrice
 		m_SliderModel{ 1.0f },
 		m_sliding{ false }
 	{
-		updateWindowLimits();
+		AdjustProj(ContextWidth, ContextHeight);
 		CreateWindowFrame();
 		CalculateMaxIconsToRender();
 
@@ -427,7 +427,9 @@ namespace Vicetrice
 		m_WindowLimits.up = aux[1];
 		m_WindowLimits.down = aux2[1];
 
-		UpdateSliderLimits();
+		if (m_SliderEnable)
+			UpdateSliderLimits();
+
 		ConfigWindowShader();
 	}
 
@@ -654,6 +656,8 @@ namespace Vicetrice
 			std::vector<glm::vec2> Shift;
 			std::vector<Vertex> Vertices;
 			unsigned int NumberOfIcons = m_icons.size();
+
+
 			m_TotalVerticesToRender = 4;
 			if (m_IndexToFirstIconToRender != 0 && (m_MaxIconsToRender + m_IndexToFirstIconToRender - 2) > NumberOfIcons)
 			{
@@ -665,10 +669,11 @@ namespace Vicetrice
 
 			unsigned int limit = NumberOfIcons > (m_MaxIconsToRender + m_IndexToFirstIconToRender) ? m_MaxIconsToRender + m_IndexToFirstIconToRender : NumberOfIcons;
 
+			//REFILL BUFFER WITH ICON VERTICES
 			for (unsigned int i = m_IndexToFirstIconToRender; i < limit; i++)
 			{
 				const std::vector<Vertex>& iconVertices = m_icons[i]->GetVertices();
-				size_t VectorSize = iconVertices.size() ;
+				size_t VectorSize = iconVertices.size();
 
 				Vertices.insert(Vertices.end(), iconVertices.begin(), iconVertices.end());
 
@@ -696,6 +701,7 @@ namespace Vicetrice
 				m_SliderEnable = false;
 			}
 
+			//IF SLIDER ENABLE -> ADD TO ICON VERTICES
 			if (m_SliderEnable)
 			{
 
@@ -759,8 +765,6 @@ namespace Vicetrice
 	{
 		m_MaxIconsToRender = static_cast<unsigned int>(((m_WindowLimits.up - m_WindowLimits.down) / IconHeight));
 
-		std::cout << "MITR: " << m_MaxIconsToRender << std::endl;
-
 		if (m_MaxIconsToRender == 0)
 			m_MaxIconsToRender = 1;
 
@@ -774,12 +778,11 @@ namespace Vicetrice
 
 	float Window::UpdateSliderLimits()
 	{
-		//IMPORTANT: DANGEROUS CALCULATIONS AHEAD CHANGE IN CASE OF BUGS
-		float WindowH = static_cast<float>(m_MaxIconsToRender) > 5 ? static_cast<float>(m_MaxIconsToRender) - 5 : 0;
-		float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
-		float Aux = 0.13f + (WindowH / size);
-		float VariableSize = (Aux > 1.0f || Aux < -1.0f) ? 0.13f : Aux;
-		//END OF IMPORTANT
+
+		float div = static_cast<float>(m_icons.size()) / static_cast<float>(m_MaxIconsToRender);
+
+		float aux = m_WindowLimits.up - m_WindowLimits.down - (0.1f * div);
+		float VariableSize = aux >= 0.13f ? aux : 0.13f;
 
 		m_SlideLimits.right = m_WindowLimits.right;
 		m_SlideLimits.left = m_WindowLimits.right - 0.05f;
@@ -788,6 +791,7 @@ namespace Vicetrice
 
 		return VariableSize;
 	}
+
 
 
 	void Window::GenerateTextVertices(std::vector<Vertex>& VertexStorage, const std::string& text, float normalizedX, float normalizedY, float scale)
