@@ -11,7 +11,7 @@ uniform mat4 u_MP;
 
 flat out int TexID; 
 out vec4 OutColor;
-out vec2 FragTexCoords; // Coordenadas de textura para el fragmento
+out vec2 FragTexCoords;
 
 
 void main()

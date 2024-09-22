@@ -209,7 +209,7 @@ namespace Vicetrice
 		unsigned int m_MaxIconsToRender; /// Maximum number of icons to render.
 		unsigned int m_TotalVerticesToRender;
 
-		std::vector<Icon<Vertex>> m_icons;     /// Vector containing all icons in the window.
+		std::vector<Icon<Vertex> *> m_icons;     /// Vector containing all icons in the window.
 
 		bool m_SliderEnable;
 		Limits m_SlideLimits;
@@ -309,3 +309,4 @@ namespace Vicetrice
 	}; // class Window
 
 } // namespace Vicetrice
+

@@ -13,7 +13,7 @@ namespace Vicetrice
 	static float Wdown = -0.5f;
 
 	//Icon
-	static float IconHeight = 0.08f;
+	static float IconHeight = 0.05f;
 	static float IconWidth = 1.0f;
 
 	static const unsigned int VerticesPerQuad = 4;
@@ -94,7 +94,12 @@ namespace Vicetrice
 	*/
 	Window::~Window()
 	{
-
+		for (auto& icon : m_icons)
+		{
+			delete icon;
+		}
+		m_icons.clear();
+		m_icons.shrink_to_fit();
 	}
 
 	/**
@@ -226,7 +231,8 @@ namespace Vicetrice
 						m_moving = true;
 				}
 			}
-			else if (action == GLFW_RELEASE) {
+			else if (action == GLFW_RELEASE)
+			{
 				m_dragging = false;
 				m_moving = false;
 				m_sliding = false;
@@ -364,14 +370,14 @@ namespace Vicetrice
 
 
 
-		GenerateTextVertices(Vertices, NameToDisplay, 0.0f, 0.0f, 1.0f);
+		GenerateTextVertices(Vertices, NameToDisplay, 0.0f, 0.0f, 0.5f);
 
 		m_TotalVerticesToRender += Vertices.size();
 
 		m_WindowShader.Bind();
 		m_WindowShader.SetUniform1i("u_Textures", 0);
 
-		m_icons.emplace_back(Icon<Vertex>(Vertices));
+		m_icons.emplace_back(new StaticTextIcon<Vertex>(Vertices));
 		updateSlider();
 
 		m_render = true;
@@ -384,12 +390,13 @@ namespace Vicetrice
 	{
 		if (!m_icons.empty())
 		{
-			unsigned int IconVertices = m_icons.back().GetVertices().size();
+			unsigned int IconVertices = m_icons.back()->GetVertices().size();
 			m_TotalVerticesToRender -= IconVertices;
 
 			m_WindowRenderer.UpdateVBOByteSize(0, m_WindowRenderer.VBOByteSize(0) - (sizeof(Vertex) * IconVertices));
 			m_WindowRenderer.UpdateVBOByteSize(1, m_WindowRenderer.VBOByteSize(1) - (sizeof(glm::vec2) * IconVertices));
 
+			delete m_icons.back();
 			m_icons.pop_back();
 		}
 
@@ -660,8 +667,8 @@ namespace Vicetrice
 
 			for (unsigned int i = m_IndexToFirstIconToRender; i < limit; i++)
 			{
-				const std::vector<Vertex>& iconVertices = m_icons[i].GetVertices();
-				size_t VectorSize = iconVertices.size();
+				const std::vector<Vertex>& iconVertices = m_icons[i]->GetVertices();
+				size_t VectorSize = iconVertices.size() ;
 
 				Vertices.insert(Vertices.end(), iconVertices.begin(), iconVertices.end());
 
@@ -750,7 +757,9 @@ namespace Vicetrice
 
 	unsigned int Window::CalculateMaxIconsToRender()
 	{
-		m_MaxIconsToRender = static_cast<unsigned int>(((m_WindowLimits.up - m_WindowLimits.down) / IconHeight) + 1.0f);
+		m_MaxIconsToRender = static_cast<unsigned int>(((m_WindowLimits.up - m_WindowLimits.down) / IconHeight));
+
+		std::cout << "MITR: " << m_MaxIconsToRender << std::endl;
 
 		if (m_MaxIconsToRender == 0)
 			m_MaxIconsToRender = 1;
@@ -766,7 +775,7 @@ namespace Vicetrice
 	float Window::UpdateSliderLimits()
 	{
 		//IMPORTANT: DANGEROUS CALCULATIONS AHEAD CHANGE IN CASE OF BUGS
-		float WindowH = static_cast<float>(m_MaxIconsToRender) > 4.0f ? static_cast<float>(m_MaxIconsToRender) - 4.0f : 0.0f;
+		float WindowH = static_cast<float>(m_MaxIconsToRender) > 5 ? static_cast<float>(m_MaxIconsToRender) - 5 : 0;
 		float size = m_icons.empty() ? 1.0f : static_cast<float>(m_icons.size());
 		float Aux = 0.13f + (WindowH / size);
 		float VariableSize = (Aux > 1.0f || Aux < -1.0f) ? 0.13f : Aux;
@@ -806,10 +815,10 @@ namespace Vicetrice
 			stbtt_aligned_quad q;
 			stbtt_GetBakedQuad(m_WindowRenderer.FontInfo(), 512, 512, c - 32, &X, &Y, &q, 1);
 
-			float x0 = q.x0 * scale;
-			float y0 = q.y0 * scale;
-			float x1 = q.x1 * scale;
-			float y1 = q.y1 * scale;
+			float x0 = q.x0;
+			float y0 = q.y0;
+			float x1 = q.x1;
+			float y1 = q.y1;
 
 			float normX0, normY0, normX1, normY1;
 
@@ -819,12 +828,18 @@ namespace Vicetrice
 			normX1 = (2.0f * (static_cast<float>(x1) / m_BaseContextWidth)) - 1.0f;
 			normY1 = 1.0f - (2.0f * (static_cast<float>(y1) / m_BaseContextHeight));
 
+			normX0 *= scale;
+			normY0 *= scale;
+
+			normX1 *= scale;
+			normY1 *= scale;
+
 			VertexStorage.insert(VertexStorage.end(), {
 
-				{glm::vec2(normX0, normY0), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s0, q.t0), 0},
-				{glm::vec2(normX1, normY0), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s1, q.t0), 0},
-				{glm::vec2(normX0, normY1), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s0, q.t1), 0},
-				{glm::vec2(normX1, normY1), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s1, q.t1), 0},
+				{glm::vec2(normX0, normY0), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s0, q.t0), 0}, //LD
+				{glm::vec2(normX1, normY0), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s1, q.t0), 0}, //RD
+				{glm::vec2(normX0, normY1), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s0, q.t1), 0}, //LU
+				{glm::vec2(normX1, normY1), glm::vec4(1.0f,1.0f,1.0f,1.0f) ,glm::vec2(q.s1, q.t1), 0}, //RU
 
 				});
 		}
